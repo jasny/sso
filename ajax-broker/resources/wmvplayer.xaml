@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+JW WMV Player version 1.1, created with M$ Silverlight 1.0.
+
+This file contains all logic for the JW WMV Player. For a functional setup,
+the following two files are also needed:
+- silverlight.js (for instantiating the silverlight plugin)
+- wmvplayer.js (this file contains all the scripting logic)
+
+More info: http://www.jeroenwijering.com/?item=JW_WMV_Player
+-->
+
+<Canvas xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Width="320" Height="260">
+    <Canvas x:Name="PlayerDisplay" Width="320" Height="240" Background="#FF000000" Visibility="Collapsed">
+        <Image x:Name="PlaceholderImage" Width="320" Height="240" />
+        <MediaElement x:Name="VideoWindow" Width="320" Height="240" />
+        <Canvas x:Name="MuteIcon" Width="40" Height="40" Canvas.Left="140" Canvas.Top="100" Visibility="Collapsed">
+            <Path x:Name="MuteIconBack" Width="40" Height="40" Fill="#77000000" Data="F1 M4,0 L36,0 C38,0 40,2 40,4 L40,36 C40,38 38,40 36,40 L4,40 C2,40 0,38 0,36 L0,4 C0,2 2,0 4,0 Z"/>
+            <Path x:Name="MuteIconFront" Width="18" Height="18" Canvas.Left="13" Canvas.Top="11" Fill="#FFFFFFFF" Data="F1 M0,4 L4,4 L4,14 L0,14 L0,4 M6,4 L11,0 L11,18 L6,14 L6,4 M14,8 L18,8 L18,10 L14,10 L14,8 Z"/>
+        </Canvas>
+        <Canvas x:Name="BufferIcon" Width="32" Height="32" Canvas.Left="148" Canvas.Top="98" Visibility="Collapsed">
+            <Canvas.RenderTransform>
+                <RotateTransform x:Name="BufferRotation" Angle="0" CenterX="16" CenterY="16" />
+            </Canvas.RenderTransform>
+            <Canvas.Triggers>
+                <EventTrigger RoutedEvent="Canvas.Loaded">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="BufferRotation" Storyboard.TargetProperty="Angle" Duration="0:0:1.2" RepeatBehavior="Forever">
+                                <DiscreteDoubleKeyFrame Value="30" KeyTime="0:0:0.1" />
+                                <DiscreteDoubleKeyFrame Value="60" KeyTime="0:0:0.2" />
+                                <DiscreteDoubleKeyFrame Value="90" KeyTime="0:0:0.3" />
+                                <DiscreteDoubleKeyFrame Value="120" KeyTime="0:0:0.4" />
+                                <DiscreteDoubleKeyFrame Value="150" KeyTime="0:0:0.5" />
+                                <DiscreteDoubleKeyFrame Value="180" KeyTime="0:0:0.6" />
+                                <DiscreteDoubleKeyFrame Value="210" KeyTime="0:0:0.7" />
+                                <DiscreteDoubleKeyFrame Value="240" KeyTime="0:0:0.8" />
+                                <DiscreteDoubleKeyFrame Value="270" KeyTime="0:0:0.9" />
+                                <DiscreteDoubleKeyFrame Value="300" KeyTime="0:0:1" />
+                                <DiscreteDoubleKeyFrame Value="330" KeyTime="0:0:1.1" />
+                                <DiscreteDoubleKeyFrame Value="360" KeyTime="0:0:1.2" />
+                            </DoubleAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Canvas.Triggers>
+            <Path x:Name="BufferPath1" Width="2" Height="8" Canvas.Left="15" Canvas.Top="0" Stretch="Fill" Fill="#FFFFFFFF" Data="F1 M16,0 L16,0 C16.55,0 17,0.45 17,1 L17,7 C17,7.55 16.55,8 16,8 L16,8C 15.45,8 15,7.55 15,7 L15,1 C15,0.45 15.45,0 16,0 Z "/>
+            <Path x:Name="BufferPath2" Width="5" Height="7.2" Canvas.Left="7.5" Canvas.Top="2" Stretch="Fill" Fill="#EEFFFFFF" Data="F1 M8,2.14 L8,2.14 C8.48,1.87 9.09,2.03 9.37,2.51 L12.366,7.71 C12.64,8.18 12.48,8.80 12,9.07 L12,9.07 C11.52,9.35 10.91,9.18 10.63,8.71 L7.63,3.51 C7.36,3.03 7.52,2.42 8,2.14 Z "/>
+            <Path x:Name="BufferPath3" Width="7.2" Height="5" Canvas.Left="2" Canvas.Top="7.5" Stretch="Fill" Fill="#DDFFFFFF" Data="F1 M2.14,8. L2.14,8 C2.42,7.52 3.03,7.36 3.51,7.63 L8.71,10.63 C9.18,10.91 9.35,11.52 9.07,12 L9.07,12 C8.80,12.48 8.18,12.64 7.71,12.36 L2.51,9.37 C2.03,9.09 1.87,8.48 2.14,8 Z "/>
+            <Path x:Name="BufferPath4" Width="8" Height="2" Canvas.Left="0" Canvas.Top="15" Stretch="Fill" Fill="#BBFFFFFF" Data="F1 M0,16 L0,16 C0,15.45 0.45,15 1,15 L7,15 C7.55,15 8,15.45 8,16 L8,16 C8,16.55 7.55,17 7,17 L1,17 C0.45,17 0,16.55 0,16 Z "/>
+            <Path x:Name="BufferPath5" Width="7.2" Height="5" Canvas.Left="2" Canvas.Top="19.5" Stretch="Fill" Fill="#AAFFFFFF" Data="F1 M2.14,24 L2.14,24 C1.87,23.52 2.03,22.91 2.51,22.63 L7.71,19.63 C8.18,19.35 8.80,19.52 9.08,20 L9.07,20 C9.35,20.48 9.18,21.09 8.71,21.36 L3.51,24.37 C3.03,24.64 2.42,24.48 2.14,24 Z "/>
+            <Path x:Name="BufferPath6" Width="5" Height="7.2" Canvas.Left="7.5" Canvas.Top="22.8" Stretch="Fill" Fill="#99FFFFFF" Data="F1 M8,29.86 L8,29.86 C7.52,29.58 7.36,28.97 7.63,28.49 L10.63,23.29 C10.91,22.82 11.52,22.65 12,22.93 L12,22.93 C12.48,23.20 12.64,23.82 12.37,24.29 L9.37,29.49 C9.09,29.97 8.48,30.13 8,29.86 Z "/>
+            <Path x:Name="BufferPath7" Width="2" Height="8" Canvas.Left="15" Canvas.Top="24" Stretch="Fill" Fill="#77FFFFFF" Data="F1 M16,24 L16,24 C16.55,24 17,24.45 17,25 L17,31 C17,31.55 16.55,32 16,32 L16,32 C15.45,32 15,31.55 15,31 L15,25 C15,24.45 15.45,24 16,24 Z "/>
+            <Path x:Name="BufferPath8" Width="5" Height="7.2" Canvas.Left="19.5" Canvas.Top="22.8" Stretch="Fill" Fill="#66FFFFFF" Data="F1 M20,22.93 L20,22.93 C20.48,22.65 21.09,22.82 21.36,23.29 L24.37,28.49 C24.64,28.97 24.48,29.58 24,29.86 L24,29.86 C23.52,30.13 22.91,29.97 22.63,29.49 L19.63,24.29 C19.36,23.82 19.52,23.20 20,22.93 Z "/>
+            <Path x:Name="BufferPath9" Width="7.2" Height="5" Canvas.Left="22.8" Canvas.Top="19.5" Stretch="Fill" Fill="#55FFFFFF" Data="F1 M22.93,20 L22.93,20 C23.20,19.52 23.82,19.36 24.29,19.63 L29.49,22.63 C29.97,22.91 30.13,23.52 29.86,24 L29.86,24 C29.58,24.48 28.97,24.64 28.49,24.37 L23.29,21.37 C22.82,21.09 22.65,20.48 22.93,20 Z "/>
+            <Path x:Name="BufferPath10" Width="8" Height="2" Canvas.Left="24" Canvas.Top="15" Stretch="Fill" Fill="#33FFFFFF" Data="F1 M24,16 L24,16 C24,15.45 24.45,15 25,15 L31,15 C31.55,15 32,15.45 32,16 L32,16 C32,16.55 31.55,17 31,17 L25,17 C24.45,17 24,16.55 24,16 Z "/>
+            <Path x:Name="BufferPath11" Width="7.2" Height="5" Canvas.Left="22.8" Canvas.Top="7.5" Stretch="Fill" Fill="#22FFFFFF" Data="F1 M 22.93,12 L22.93,12 C22.65,11.52 22.82,10.91 23.29,10.63 L28.49,7.63 C28.97,7.36 29.58,7.52 29.86,8 L29.86,8 C30.13,8.48 29.97,9.09 29.49,9.37 L24.29,12.36 C23.82,12.64 23.20,12.48 22.93,12 Z "/>
+            <Path x:Name="BufferPath12" Width="5" Height="7.2" Canvas.Left="19.5" Canvas.Top="2" Stretch="Fill" Fill="#11FFFFFF" Data="F1 M 20,9.07 L20,9.07 C19.52,8.80 19.36,8.18 19.63,7.71 L22.63,2.51 C22.91,2.03 23.52,1.87 24,2.14 L24,2.14 C24.48,2.42 24.64,3.03 24.37,3.51 L21.37,8.71 C21.09,9.18 20.48,9.35 20,9.07 Z "/>
+        </Canvas>
+        <TextBlock x:Name="BufferText" Canvas.Left="158" Canvas.Top="108" FontFamily="Verdana" FontSize="9" FontWeight="Bold" Foreground="#FFFFFFFF" Width="12" Height="10"/>
+        <Canvas x:Name="OverlayCanvas" Width="300" Height="200" Canvas.Left="220" Canvas.Top="10" Visibility="Collapsed">
+            <Canvas.Background>
+                <ImageBrush x:Name="OverlayLogo" AlignmentX="Right" AlignmentY="Top" Stretch="None" />
+            </Canvas.Background>
+        </Canvas>
+    </Canvas>
+</Canvas>

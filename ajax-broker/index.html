@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns:j="http://www.javeline.com/2005/jml" xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>Single Sign-ON</title>
+        <script src="jpf_debug.js"></script>
+        <script src="alert_r.js"></script>
+        <script src="code.js"></script>
+    </head>
+    <body>
+        <j:skin src="skins.xml" icon-path=""></j:skin>
+        
+        <div style="width:300px;height:40px;background-image:url(logo.png); position:absolute;top:50p;xleft:50px;"></div>
+        
+        <j:appsettings
+            debug      = "false"
+            outline    = "false"
+            skinset    = "default"
+            allow-blur = "true"
+            undokeys   = "true"
+        >
+            <j:auth
+                login         = "rpc:comm.login(username, password)" 
+                logout        = "rpc:comm.logout()" 
+                fail-state    = "stFail" 
+                error-state   = "stError" 
+                login-state   = "stIdle" 
+                logout-state  = "stLoggedOut"
+                waiting-state = "stLoggingIn"
+             />
+        </j:appsettings>
+        <j:teleport>
+            <j:rpc id="comm" protocol="cgi" http-method="post">
+                <j:method name="login" url="sso.php?cmd=login&#38;no-cache=3jj4dkjaf89">
+                    <j:variable name="username" />
+                    <j:variable name="password" />
+                </j:method>
+                <j:method name="attachurl" url="sso.php?cmd=getattachurl&#38;no-cache=3jj4dkjaf89" receive="M_afterAttachURL" />
+                <j:method name="info" url="sso.php?cmd=info&#38;no-cache=3jj4dkjaf89" receive="M_afterInfo" />
+                <j:method name="logout" url="sso.php?cmd=logout&#38;no-cache=3jj4dkjaf89" />
+            </j:rpc>
+        </j:teleport>
+    
+        <j:loader>
+            <div id="loadscreen">Loading...</div>
+        </j:loader>
+    
+        <j:state-group id="stGr1" loginMsg.visible="false">
+            <j:state id="stFail" 
+                loginMsg.value        = "Username or password incorrect" 
+                loginMsg.visible      = "true"
+                log_email.disabled    = "false"
+                log_password.disabled = "false"
+            />
+            <j:state id="stError" 
+                loginMsg.value   = "An error has occurred. Please check your network." 
+                loginMsg.visible = "true"
+            />
+            <j:state id="stLoggingIn" 
+                loginMsg.value   = "Please wait whilst logging in..." 
+                loginMsg.visible = "true" 
+                
+            />
+            <j:state id="stLoggedOut" 
+                loginMsg.value        = "" 
+                loginMsg.visible      = "false" 
+                addons.visible        = "true" 
+                log_email.disabled    = "false" 
+                log_password.disabled = "false" 
+            />
+            <j:state id="stIdle" />
+        </j:state-group>
+
+        <j:window
+            skin      = "modalwindow"
+            id        = "M_WINmain"
+            resizable = "true"
+            center    = "true"
+            buttons   = "min|max"
+            visible   = "false"
+            icon      = "images/icons/bullet_key.png"
+            width     = "250"
+            height    = "160"
+            title     = "Log in"
+            modal     = "false"
+            minwidth  = "250"
+            minheight = "160"
+            >
+            
+            <j:grid columns="60,120" top="30" left="20" cellheight="22" margin="0 6 0 6">
+                <j:label 
+                    value="Login:"
+                 />
+                <j:textbox
+                    value      = ""
+                    id         = "log_email"
+                    type       = "username"
+                    required   = "true"
+                    minlength  = "1"
+                    invalidmsg = "Invalid Entry;Please enter a username" />
+                <j:label 
+                    value="Password:"
+                 />
+                <j:textbox
+                    value      = ""
+                    id         = "log_password"
+                    type       = "password"
+                    required   = "true"
+                    minlength  = "1"
+                    invalidmsg = "Invalid Entry;Please enter your password" />
+            </j:grid>
+            <j:button
+                top     = "85"
+                left    = "140"
+                width   = "70"
+                margin  = "0 0 0 20"
+                style   = "padding-left:4px;"
+                action  = "login"
+                default = "true"
+            >
+                Login
+            </j:button>
+            <j:label
+                top  = "110"
+                left = "10"
+                id   = "loginMsg"
+            />
+
+        </j:window>
+        <j:window
+            skin      = "modalwindow"
+            id        = "M_WINinfo"
+            resizable = "true"
+            center    = "true"
+            buttons   = "min|max"
+            visible   = "false"
+            icon      = "images/icons/bullet_key.png"
+            width     = "250"
+            height    = "130"
+            title     = "You are logged in"
+            modal     = "false"
+            minwidth  = "250"
+            minheight = "130"
+            >
+            <j:label
+                id    = "lblLoggedIn"
+                top   = "25"
+                left  = "10"
+                value = ""
+                style = "color:green;font-weight:bold;"
+            />
+            <j:button
+                top     = "55"
+                left    = "140"
+                width   = "70"
+                action  = "logout"
+                default = "true"
+            >
+                Logout
+            </j:button>
+        </j:window>
+    </body>
+</html>
