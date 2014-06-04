@@ -1,0 +1,26 @@
+{
+    "name": "jasny/sso",
+    "description": "Simple Single Sign-On",
+    "keywords": ["sso", "auth"],
+    "license": "MIT",
+    "homepage": "http://www.jasny.net/articles/simple-single-sign-on-for-php/",
+    "authors": [
+        {
+            "name": "Arnold Daniels",
+            "email": "arnold@jasny.net",
+            "homepage": "http://www.jasny.net"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/jasny/sso/issues",
+        "source": "https://github.com/jasny/sso"
+    },
+    "require": {
+        "php": ">=5.3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Jasny\\SSO": "src/"
+        }
+    }
+}
