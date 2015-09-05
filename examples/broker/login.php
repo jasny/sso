@@ -1,11 +1,11 @@
 <?php
-require_once("sso.php");
+require_once $_SERVER['DOCUMENT_ROOT']. "/src/Broker.php";
 
-$sso = new SingleSignOn_Broker();
+$broker = new Jasny\SSO\Broker('http://localhost:9000/examples/server/', 'Alice', 'Bob');
 
 if (!empty($_GET['logout'])) {
-    $sso->logout();
-} elseif ($sso->getInfo() || ($_SERVER['REQUEST_METHOD'] == 'POST' && $sso->login())) {
+    $broker->logout();
+} elseif ($broker->getUserInfo() || ($_SERVER['REQUEST_METHOD'] == 'POST' && $broker->login($_POST['username'], $_POST['password']))) {
     header("Location: index.php", true, 303);
     exit;
 }
@@ -16,11 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') $errmsg = "Login failed";
 
 <html>
 	<head>
-		<title>Single Sign-On demo (<?= $sso->broker ?>) - Login</title>
+		<title>Single Sign-On demo (<?= $broker->broker ?>) - Login</title>
 	</head>
 	<body>
 		<h1>Single Sign-On demo - Login</h1>
-		<h2><?= $sso->broker ?></h2>
+		<h2><?= $broker->broker ?></h2>
 		
 		<? if (isset($errmsg)): ?><div style="color:red"><?= $errmsg ?></div><? endif; ?>
 		<form action="login.php" method="POST">

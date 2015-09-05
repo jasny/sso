@@ -4,32 +4,34 @@ namespace Jasny\SSO;
 
 /**
  * Single sign-on server.
- * 
- * The SSO server is responsible of managing users sessions which are available for brokers. 
+ *
+ * The SSO server is responsible of managing users sessions which are available for brokers.
  */
 abstract class Server
 {
     /**
      * Path to link files.
-     * 
+     *
      * If you run the SSO server on a shared hosting system, be sure to change this to a path in your home folder.
      * This path MUST NOT be accessable by the web.
-     * 
+     *
      * @var string
      */
     public static $linkPath;
-    
+
     /**
      * Probability that the garbage collector is activated to remove of link files.
-     * 
+     *
      * Similar to gc_probability/gc_divisor
      * @link http://www.php.net/manual/en/session.configuration.php#ini.session.gc-probability
-     * 
+     *
      * @var float
      */
     public static $gcProbability = 0.01;
 
-    
+    private $started = false;
+
+
     /**
      * Get path to link files
      */
@@ -38,8 +40,8 @@ abstract class Server
         if (!isset(self::$linkPath)) self::$linkPath = sys_get_temp_dir() . '/sso';
         if (file_exists(self::$linkPath)) mkdir(self::$linkPath, 1777, true);
     }
-    
-    
+
+
     /**
      * Start session and protect against session hijacking
      */
@@ -57,6 +59,7 @@ abstract class Server
             if (isset($this->links_path) && file_exists("{$this->links_path}/$sid")) {
                 session_id(file_get_contents("{$this->links_path}/$sid"));
                 session_start();
+                #TODO: the session cookie expires in 1 second.
                 setcookie(session_name(), "", 1);
             } else {
                 session_start();
@@ -86,29 +89,31 @@ abstract class Server
 
     /**
      * Generate session id from session token
-     * 
+     *
      * @return string
      */
     protected function generateSessionId($broker, $token, $client_addr = null)
     {
-        if (!isset(self::$brokers[$broker]))
+        $brokerInfo = $this->getBrokerInfo($broker);
+        if (!isset($brokerInfo))
             return null;
 
         if (!isset($client_addr))
             $client_addr = $_SERVER['REMOTE_ADDR'];
-        return "SSO-{$broker}-{$token}-" . md5('session' . $token . $client_addr . self::$brokers[$broker]['secret']);
+        return "SSO-{$broker}-{$token}-" . md5('session' . $token . $client_addr . $brokerInfo['secret']);
     }
 
     /**
      * Generate session id from session token
-     * 
+     *
      * @return string
      */
     protected function generateAttachChecksum($broker, $token)
     {
-        if (!isset(self::$brokers[$broker]))
+        $brokerInfo = $this->getBrokerInfo($broker);
+        if (!isset($brokerInfo))
             return null;
-        return md5('attach' . $token . $_SERVER['REMOTE_ADDR'] . self::$brokers[$broker]['secret']);
+        return md5('attach' . $token . $_SERVER['REMOTE_ADDR'] . $brokerInfo['secret']);
     }
 
     /**
@@ -123,11 +128,11 @@ abstract class Server
         if (empty($_POST['password']))
             $this->failLogin("No password specified");
 
-        if (!isset(self::$users[$_POST['username']]) || self::$users[$_POST['username']]['password'] != $_POST['password'])
+        if (!$this->checkLogin($_POST['username'], $_POST['password']))
             $this->failLogin("Incorrect credentials");
 
-        $_SESSION['user'] = $_POST['username'];
-        $this->info();
+        $_SESSION['username'] = $_POST['username'];
+        $this->userInfo();
     }
 
     /**
@@ -136,12 +141,14 @@ abstract class Server
     public function logout()
     {
         $this->sessionStart();
-        unset($_SESSION['user']);
-        echo 1;
+        unset($_SESSION['username']);
+
+        header('Content-type: application/json; charset=UTF-8');
+        echo "{}";
     }
 
     /**
-     * Attach a user session to a broker session 
+     * Attach a user session to a broker session
      */
     public function attach()
     {
@@ -168,8 +175,10 @@ abstract class Server
                 trigger_error("Failed to attach; Link file wasn't created.", E_USER_ERROR);
         }
 
-        if (isset($_REQUEST['redirect'])) {
-            header("Location: " . $_REQUEST['redirect'], true, 307);
+        error_log('hello world');
+        echo ('request '. var_dump($_REQUEST));
+        if (isset($_REQUEST['returnUrl'])) {
+            header('Location: ' . $_REQUEST['returnUrl'], true, 307);
             exit;
         }
 
@@ -179,22 +188,26 @@ abstract class Server
     }
 
     /**
-     * Ouput user information as XML.
+     * Ouput user information as json.
      * Doesn't return e-mail address to brokers with security level < 2.
      */
-    public function info()
+    public function userInfo()
     {
         $this->sessionStart();
-        if (!isset($_SESSION['user']))
+        if (!isset($_SESSION['username']))
             $this->failLogin("Not logged in");
 
-        header('Content-type: text/xml; charset=UTF-8');
-        echo '<?xml version="1.0" encoding="UTF-8" ?>', "\n";
+        $userData = $this->getUserInfo($_SESSION['username']);
+        $userData['username'] = $_SESSION['username'];
 
-        echo '<user identity="' . htmlspecialchars($_SESSION['user'], ENT_COMPAT, 'UTF-8') . '">';
-        echo '  <fullname>' . htmlspecialchars(self::$users[$_SESSION['user']]['fullname'], ENT_COMPAT, 'UTF-8') . '</fullname>';
-        echo '  <email>' . htmlspecialchars(self::$users[$_SESSION['user']]['email'], ENT_COMPAT, 'UTF-8') . '</email>';
-        echo '</user>';
+        forEach($userData as $key => $value)
+        {
+            # TODO: find alternative for htmlspecialchars, as this can be a vulnerability.
+            $userData[$key] = htmlspecialchars($value, ENT_COMPAT, 'UTF-8');
+        }
+
+        header('Content-type: application/json; charset=UTF-8');
+        echo json_encode($userData);
     }
 
     /**
@@ -206,7 +219,7 @@ abstract class Server
     protected function fail($message)
     {
         header("HTTP/1.1 406 Not Acceptable");
-        echo $message;
+        echo json_encode(array('error' => $message));
         exit;
     }
 
@@ -219,8 +232,13 @@ abstract class Server
     protected function failLogin($message)
     {
         header("HTTP/1.1 401 Unauthorized");
-        echo $message;
+        header('Content-type: application/json; charset=UTF-8');
+        echo json_encode(array('error' => $message));
         exit;
     }
 
+    abstract protected function checkLogin($username, $password);
+    abstract protected function getBrokerInfo($brokerId);
+    abstract protected function getUserInfo($brokerId);
 }
+?>
