@@ -16,11 +16,12 @@
         "source": "https://github.com/jasny/sso"
     },
     "require": {
-        "php": ">=5.3.0"
+        "php": ">=5.3.0",
+        "codeception/codeception": "*"
     },
     "autoload": {
         "psr-4": {
-            "Jasny\\SSO": "src/"
+            "Jasny\\SSO\\": "src/"
         }
     }
 }

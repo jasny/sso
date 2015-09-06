@@ -58,8 +58,10 @@ abstract class Server
             error_log('starting broker session');
             $sid = $_REQUEST[session_name()];
 
-            if (isset(self::$linkPath) && file_exists("{self::$linkPath}/$sid")) {
-                session_id(file_get_contents("{self::$linkPath}/$sid"));
+
+            $link = (session_save_path() ? session_save_path() : sys_get_temp_dir()) . "/sess_" . $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
+            if (file_exists($link)) {
+                session_id(file_get_contents($link));
                 session_start();
                 #TODO: the session cookie expires in 1 second.
                 setcookie(session_name(), "", 1);
@@ -171,11 +173,17 @@ abstract class Server
 
         if (!isset(self::$linkPath)) {
             $link = (session_save_path() ? session_save_path() : sys_get_temp_dir()) . "/sess_" . $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
-            error_log('writing file: ' . $link);
+            error_log('writing file|' . $link . '|');
+            error_log('session id: ' . session_id());
             if (!file_exists($link))
                 $attached = file_put_contents($link, session_id());
             if (!$attached)
                 trigger_error("Failed to attach; Link file wasn't created.", E_USER_ERROR);
+
+            if (!file_exists($link))
+                trigger_error("Failed to attach; Link file wasn't created.", E_USER_ERROR);
+            error_log('number of bytes written: ' . $attached);
+            error_log(error_get_last());
         } else {
             $link = "{self::$linkPath}/" . $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
             if (!file_exists($link))
@@ -184,10 +192,10 @@ abstract class Server
                 trigger_error("Failed to attach; Link file wasn't created.", E_USER_ERROR);
         }
 
-        echo ('request '. json_encode($_REQUEST));
+        //error_log ('request '. json_encode($_REQUEST));
         if (isset($_REQUEST['returnUrl'])) {
             header('Location: ' . $_REQUEST['returnUrl'], true, 307);
-            exit;
+            exit();
         }
 
         // Output an image specially for AJAX apps

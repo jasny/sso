@@ -1,5 +1,6 @@
 <?php
-require_once $_SERVER['DOCUMENT_ROOT']. "/src/Broker.php";
+session_save_path('/tmp/SSO2');
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 $broker = new Jasny\SSO\Broker('http://localhost:9000/examples/server/', 'Alice', 'Bob');
 
@@ -23,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') $errmsg = "Login failed";
 		<h2><?= $broker->broker ?></h2>
 		
 		<? if (isset($errmsg)): ?><div style="color:red"><?= $errmsg ?></div><? endif; ?>
-		<form action="login.php" method="POST">
+		<form id="login" action="login.php" method="POST">
     		<table>
     			<tr><td>Username</td><td><input type="text" name="username" /></td></tr>
     			<tr><td>Password</td><td><input type="password" name="password" /></td></tr>

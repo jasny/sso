@@ -27,7 +27,6 @@ class Broker
      */
     protected $secret;
 
-
     /**
      * Session token of the client
      * @var string
@@ -54,6 +53,7 @@ class Broker
         $this->secret = $secret;
         session_start();
         //error_log('userinfo: '. $_SESSION['SSO']['userinfo']);
+        error_log('session ' . json_encode($_SESSION));
         if (isset($_SESSION['SSO']['token'])) $this->token = $_SESSION['SSO']['token'];
         // if (isset($_SESSION['SSO']['userinfo'])) $this->userinfo = $_SESSION['SSO']['userinfo'];
 
@@ -168,7 +168,6 @@ class Broker
         $ch = curl_init($this->getRequestUrl($command));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         error_log($this->getSessionId());
-        curl_setopt($ch, CURLOPT_COOKIE, "PHPSESSID=" . $this->getSessionId());
         curl_setopt($ch, CURLOPT_POST, true);
 
         $params[session_name()] = $this->getSessionId();
@@ -204,6 +203,8 @@ class Broker
      */
     public function login($username = null, $password = null)
     {
+        if (!isset($username)) $username = $_REQUEST['username'];
+        if (!isset($password)) $password = $_REQUEST['password'];
         $result = $this->request('login', compact('username', 'password'));
         if (!array_key_exists('error', $result)) {
             $this->userinfo = $result;
@@ -229,6 +230,7 @@ class Broker
      */
     public function getUserInfo()
     {
+        error_log('trying to get user info');
         try {
             # TODO: the data is not updated
             if (!isset($this->userinfo)) {

@@ -1,5 +1,6 @@
 <?php
-require_once $_SERVER['DOCUMENT_ROOT']. "/src/Server.php";
+session_save_path('/tmp/SSO1');
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 class ExampleServer extends Jasny\SSO\Server
 {
