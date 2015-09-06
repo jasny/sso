@@ -13,7 +13,7 @@ class Broker
      * Url of SSO server
      * @var string
      */
-    public $url;
+    protected $url;
 
     /**
      * My identifier, given by SSO provider.
@@ -25,14 +25,14 @@ class Broker
      * My secret word, given by SSO provider.
      * @var string
      */
-    public $secret;
+    protected $secret;
 
 
     /**
      * Session token of the client
      * @var string
      */
-    protected $token;
+   public $token;
 
     /**
      * User info recieved from the server.
@@ -52,12 +52,24 @@ class Broker
         $this->url = $url;
         $this->broker = $broker;
         $this->secret = $secret;
-        error_log(session_start());
-        error_log('userinfo: '. $_SESSION['SSO']['userinfo']);
+        session_start();
+        //error_log('userinfo: '. $_SESSION['SSO']['userinfo']);
         if (isset($_SESSION['SSO']['token'])) $this->token = $_SESSION['SSO']['token'];
-        if (isset($_SESSION['SSO']['userinfo'])) $this->userinfo = $_SESSION['SSO']['userinfo'];
+        // if (isset($_SESSION['SSO']['userinfo'])) $this->userinfo = $_SESSION['SSO']['userinfo'];
+
+        error_log('token ' . $this->token);
     }
 
+    /**
+     * Generate session id from session key
+     *
+     * @return string
+     */
+    protected function getSessionId()
+    {
+		if (!isset($this->token)) return null;
+        return "SSO-{$this->broker}-{$this->token}-" . md5('session' . $this->token . $_SERVER['REMOTE_ADDR'] . $this->secret);
+    }
 
     /**
      * Get session token
@@ -66,6 +78,11 @@ class Broker
      */
     public function getToken()
     {
+        if (!isset($this->token)) {
+            $this->token = md5(uniqid(rand(), true));
+            $_SESSION['SSO']['token'] = $this->token;
+        }
+
         return $this->token;
     }
 
@@ -86,9 +103,7 @@ class Broker
      */
     public function getAttachUrl()
     {
-        $token = md5(uniqid(rand(), true));
-        $_SESSION['SSO']['token'] = $token;
-
+        $token = $this->getToken();
         $checksum = md5("attach{$token}{$_SERVER['REMOTE_ADDR']}{$this->secret}");
         return "{$this->url}?command=attach&broker={$this->broker}&token=$token&checksum=$checksum";
     }
@@ -100,6 +115,7 @@ class Broker
      */
     public function attach($returnUrl = null)
     {
+        error_log('trying to attach');
         if ($this->isAttached()) return;
 
         if (!isset($returnUrl)) $returnUrl = "http://{$_SERVER["SERVER_NAME"]}{$_SERVER["REQUEST_URI"]}";
@@ -147,15 +163,16 @@ class Broker
      * @param array  $params   Post parameters
      * @return array
      */
-    protected function request($command, $params = null)
+    protected function request($command, $params = array())
     {
         $ch = curl_init($this->getRequestUrl($command));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        error_log($this->getSessionId());
+        curl_setopt($ch, CURLOPT_COOKIE, "PHPSESSID=" . $this->getSessionId());
+        curl_setopt($ch, CURLOPT_POST, true);
 
-        if (isset($params)) {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
-        }
+        $params[session_name()] = $this->getSessionId();
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
 
         $response = curl_exec($ch);
         if (curl_errno($ch) != 0) throw new \Exception("Server request failed: " . curl_error($ch));
@@ -165,10 +182,10 @@ class Broker
         $contentType = explode('; ', $contentType)[0];
 
         if ($contentType != 'application/json') {
-            throw new \Exception("Response did not come from the SSO server. $response", $info->http_code);
+            throw new \Exception("Response did not come from the SSO server. $response", $httpCode);
         }
 
-        error_log($response);
+        error_log('response ' . $response);
         $data = json_decode(stripslashes(trim($response)), true);
         if ($httpCode != 200) throw new \Exception($httpCode);
         return $data;
@@ -190,7 +207,7 @@ class Broker
         $result = $this->request('login', compact('username', 'password'));
         if (!array_key_exists('error', $result)) {
             $this->userinfo = $result;
-            $_SESSION['SSO']['userinfo'] = $result;
+            // $_SESSION['SSO']['userinfo'] = $result;
             error_log('success');
         }
         else {
@@ -221,6 +238,7 @@ class Broker
             return $this->userinfo;
         }
         catch (\Exception $ex) {
+            error_log($ex);
             return null;
         }
     }

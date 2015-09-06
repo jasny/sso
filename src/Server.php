@@ -53,17 +53,21 @@ abstract class Server
 
         // Broker session
         $matches = null;
+        error_log('request: ' . json_encode($_REQUEST));
         if (isset($_REQUEST[session_name()]) && preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_REQUEST[session_name()], $matches)) {
+            error_log('starting broker session');
             $sid = $_REQUEST[session_name()];
 
-            if (isset($this->links_path) && file_exists("{$this->links_path}/$sid")) {
-                session_id(file_get_contents("{$this->links_path}/$sid"));
+            if (isset(self::$linkPath) && file_exists("{self::$linkPath}/$sid")) {
+                session_id(file_get_contents("{self::$linkPath}/$sid"));
                 session_start();
                 #TODO: the session cookie expires in 1 second.
                 setcookie(session_name(), "", 1);
             } else {
                 session_start();
             }
+
+            error_log('session ' . json_encode($_SESSION));
 
             if (!isset($_SESSION['client_addr'])) {
                 session_destroy();
@@ -80,11 +84,15 @@ abstract class Server
         }
 
         // User session
+
+        error_log('starting user session');
         session_start();
         if (isset($_SESSION['client_addr']) && $_SESSION['client_addr'] != $_SERVER['REMOTE_ADDR'])
             session_regenerate_id(true);
         if (!isset($_SESSION['client_addr']))
             $_SESSION['client_addr'] = $_SERVER['REMOTE_ADDR'];
+
+        error_log('session ' . json_encode($_SESSION));
     }
 
     /**
@@ -161,22 +169,22 @@ abstract class Server
         if (empty($_REQUEST['checksum']) || $this->generateAttachChecksum($_REQUEST['broker'], $_REQUEST['token']) != $_REQUEST['checksum'])
             $this->fail("Invalid checksum");
 
-        if (!isset($this->links_path)) {
+        if (!isset(self::$linkPath)) {
             $link = (session_save_path() ? session_save_path() : sys_get_temp_dir()) . "/sess_" . $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
+            error_log('writing file: ' . $link);
             if (!file_exists($link))
-                $attached = symlink('sess_' . session_id(), $link);
+                $attached = file_put_contents($link, session_id());
             if (!$attached)
-                trigger_error("Failed to attach; Symlink wasn't created.", E_USER_ERROR);
+                trigger_error("Failed to attach; Link file wasn't created.", E_USER_ERROR);
         } else {
-            $link = "{$this->links_path}/" . $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
+            $link = "{self::$linkPath}/" . $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
             if (!file_exists($link))
                 $attached = file_put_contents($link, session_id());
             if (!$attached)
                 trigger_error("Failed to attach; Link file wasn't created.", E_USER_ERROR);
         }
 
-        error_log('hello world');
-        echo ('request '. var_dump($_REQUEST));
+        echo ('request '. json_encode($_REQUEST));
         if (isset($_REQUEST['returnUrl'])) {
             header('Location: ' . $_REQUEST['returnUrl'], true, 307);
             exit;
@@ -219,6 +227,7 @@ abstract class Server
     protected function fail($message)
     {
         header("HTTP/1.1 406 Not Acceptable");
+        header('Content-type: application/json; charset=UTF-8');
         echo json_encode(array('error' => $message));
         exit;
     }
