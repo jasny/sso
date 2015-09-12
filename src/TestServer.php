@@ -52,10 +52,4 @@ class TestServer extends Server
     {
         return self::$users[$user];
     }
-
-    // protected function createCacheAdapter() {
-    //     $adapter = new Memory();
-    //     $adapter->setOption('ttl', 10 * 3600);
-    //     return new Cache($adapter);
-    // }
 }

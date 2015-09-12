@@ -14,17 +14,6 @@ use Jasny\ValidationResult;
  */
 abstract class Server
 {
-    /**
-     * Probability that the garbage collector is activated to remove of link files.
-     *
-     * Similar to gc_probability/gc_divisor
-     *
-     * @link http://www.php.net/manual/en/session.configuration.php#ini.session.gc-probability
-     *
-     * @var float
-     */
-    public static $gcProbability = 0.01;
-
     private $started = false;
 
     /**
@@ -39,7 +28,18 @@ abstract class Server
         $this->cache = $this->createCacheAdapter();
         $this->cache->set('hello world', 'bonjour');
         error_log('cache: ' . $this->cache->get('hello world'));
-        error_log('request:'. json_encode($_REQUEST));
+        error_log('request: ' . json_encode($_REQUEST));
+    }
+
+    protected function getClientAddress() {
+        if (!empty($_SERVER['REMOTE_ADDR'])) {
+            return $_SERVER['REMOTE_ADDR'];
+        }
+        elseif (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)) {
+            return array_pop(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']));
+        }
+
+        return $clientAddr;
     }
 
     /**
@@ -54,12 +54,25 @@ abstract class Server
         // Broker session
         $matches = null;
 
-        error_log('request: ' . json_encode($_REQUEST));
         if (isset($_REQUEST[session_name()])
             && preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_REQUEST[session_name()], $matches)) {
-            error_log('starting broker session');
             $sid = $_REQUEST[session_name()];
-            error_log('retrieved sid: '. $sid);
+
+            /* for (cross domain) ajax attach calls */
+            if (isset($_POST['clientSid'])
+                && $this->generateSessionId($matches[1], $matches[2], $_POST['clientAddr']) == $sid) {
+
+                error_log('setting sid');
+                session_id($_POST['clientSid']);
+                session_start();
+
+                if (isset($_SESSION['client_addr']) && $_SESSION['client_addr'] != $_POST['clientAddr']) {
+                    unset($_SESSION['username']);
+                }
+
+                $_SESSION['client_addr'] = $_POST['clientAddr'];
+                return;
+            }
 
             $linkedId = $this->cache->get($sid);
             if ($linkedId) {
@@ -91,7 +104,11 @@ abstract class Server
 
         error_log('starting user session');
         session_start();
+
+        error_log('session ' . json_encode($_SESSION));
+        error_log('session dd' . session_id());
         if (isset($_SESSION['client_addr']) && $_SESSION['client_addr'] != $_SERVER['REMOTE_ADDR']) {
+            error_log('regenerate id');
             session_regenerate_id(true);
         }
         if (!isset($_SESSION['client_addr'])) {
@@ -187,7 +204,6 @@ abstract class Server
         }
 
         // Output an image specially for AJAX apps
-
         header('Content-type: application/json; charset=UTF-8');
         echo json_encode(['token' => $_REQUEST['token']]);
     }

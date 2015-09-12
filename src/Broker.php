@@ -121,8 +121,9 @@ class Broker
      */
     public function attach($returnUrl = null)
     {
-        error_log('trying to attach');
+        error_log('trying to attach: ' . $this->token);
         if ($this->isAttached()) return;
+        error_log('trying to attach: ' . $this->token);
 
         $url = $this->getAttachUrl();
 
@@ -137,6 +138,27 @@ class Broker
         exit();
     }
 
+    public function ajaxAttach()
+    {
+        error_log('trying to attach using ajax: ' . $this->token . ' ' . session_id());
+        error_log('with token: ' . $this->token);
+        error_log('with sid: ' . session_id());
+
+        $token = $this->getToken();
+        $checksum = md5("attach{$token}{$_SERVER['REMOTE_ADDR']}{$this->secret}");
+
+        $params = [
+            'token' => $this->token,
+            'broker' => $this->broker,
+            'token' => $token,
+            'checksum' => $checksum,
+            'clientSid' => session_id(),
+            'clientAddr' => $_SERVER['REMOTE_ADDR']
+        ];
+
+        return $this->request('attach', $params);
+    }
+
     /**
      * Detach our session from the user's session on the SSO server.
      */
@@ -146,6 +168,8 @@ class Broker
         $this->userinfo = null;
 
         unset($_SESSION['SSO']);
+        echo '{}';
+        exit();
     }
 
 
@@ -174,13 +198,15 @@ class Broker
      * @param  array  $params  Post parameters
      * @return array
      */
-    protected function request($command, $params = array())
+    protected function request($command, $params = array(), $sid = null)
     {
         $ch = curl_init($this->getRequestUrl($command));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
 
-        $params[session_name()] = $this->getSessionId();
+        if (!isset($sid)) $params[session_name()] = $this->getSessionId();
+        else $params[session_name()] = $sid;
+
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
 
         $response = curl_exec($ch);
