@@ -1,6 +1,10 @@
 <?php
-
 namespace Jasny\SSO;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+use Desarrolla2\Cache\Cache;
+use Desarrolla2\Cache\Adapter\File;
 
 /**
  * Single sign-on server.
@@ -10,19 +14,10 @@ namespace Jasny\SSO;
 abstract class Server
 {
     /**
-     * Path to link files.
-     *
-     * If you run the SSO server on a shared hosting system, be sure to change this to a path in your home folder.
-     * This path MUST NOT be accessable by the web.
-     *
-     * @var string
-     */
-    public static $linkPath;
-
-    /**
      * Probability that the garbage collector is activated to remove of link files.
      *
      * Similar to gc_probability/gc_divisor
+     *
      * @link http://www.php.net/manual/en/session.configuration.php#ini.session.gc-probability
      *
      * @var float
@@ -31,39 +26,46 @@ abstract class Server
 
     private $started = false;
 
-
     /**
-     * Get path to link files
+     * Cache that stores the special session data for the brokers.
+     *
+     * @var Desarrolla2\Cache\Cache
      */
-    public static function getLinkPath()
-    {
-        if (!isset(self::$linkPath)) self::$linkPath = sys_get_temp_dir() . '/sso';
-        if (file_exists(self::$linkPath)) mkdir(self::$linkPath, 1777, true);
-    }
+    public $cache;
 
+    public function __construct()
+    {
+        $this->cache = $this->createCacheAdapter();
+        $this->cache->set('hello world', 'bonjour');
+        error_log('cache: ' . $this->cache->get('hello world'));
+        error_log('request:'. json_encode($_REQUEST));
+    }
 
     /**
      * Start session and protect against session hijacking
      */
     protected function sessionStart()
     {
-        if ($this->started)
-            return;
+        if ($this->started) return;
+
         $this->started = true;
 
         // Broker session
         $matches = null;
+
         error_log('request: ' . json_encode($_REQUEST));
-        if (isset($_REQUEST[session_name()]) && preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_REQUEST[session_name()], $matches)) {
+        if (isset($_REQUEST[session_name()])
+            && preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_REQUEST[session_name()], $matches)) {
+
             error_log('starting broker session');
             $sid = $_REQUEST[session_name()];
+            error_log('retrieved sid: '. $sid);
 
-
-            $link = (session_save_path() ? session_save_path() : sys_get_temp_dir()) . "/sess_" . $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
-            if (file_exists($link)) {
-                session_id(file_get_contents($link));
+            $linkedId = $this->cache->get($sid);
+            if ($linkedId) {
+                session_id($linkedId);
                 session_start();
-                #TODO: the session cookie expires in 1 second.
+                // TODO: the session cookie expires in 1 second.
                 setcookie(session_name(), "", 1);
             } else {
                 session_start();
@@ -89,12 +91,12 @@ abstract class Server
 
         error_log('starting user session');
         session_start();
-        if (isset($_SESSION['client_addr']) && $_SESSION['client_addr'] != $_SERVER['REMOTE_ADDR'])
+        if (isset($_SESSION['client_addr']) && $_SESSION['client_addr'] != $_SERVER['REMOTE_ADDR']) {
             session_regenerate_id(true);
-        if (!isset($_SESSION['client_addr']))
+        }
+        if (!isset($_SESSION['client_addr'])) {
             $_SESSION['client_addr'] = $_SERVER['REMOTE_ADDR'];
-
-        error_log('session ' . json_encode($_SESSION));
+        }
     }
 
     /**
@@ -105,11 +107,10 @@ abstract class Server
     protected function generateSessionId($broker, $token, $client_addr = null)
     {
         $brokerInfo = $this->getBrokerInfo($broker);
-        if (!isset($brokerInfo))
-            return null;
 
-        if (!isset($client_addr))
-            $client_addr = $_SERVER['REMOTE_ADDR'];
+        if (!isset($brokerInfo)) return null;
+        if (!isset($client_addr)) $client_addr = $_SERVER['REMOTE_ADDR'];
+
         return "SSO-{$broker}-{$token}-" . md5('session' . $token . $client_addr . $brokerInfo['secret']);
     }
 
@@ -121,8 +122,8 @@ abstract class Server
     protected function generateAttachChecksum($broker, $token)
     {
         $brokerInfo = $this->getBrokerInfo($broker);
-        if (!isset($brokerInfo))
-            return null;
+        if (!isset($brokerInfo)) return null;
+
         return md5('attach' . $token . $_SERVER['REMOTE_ADDR'] . $brokerInfo['secret']);
     }
 
@@ -133,13 +134,12 @@ abstract class Server
     {
         $this->sessionStart();
 
-        if (empty($_POST['username']))
-            $this->failLogin("No user specified");
-        if (empty($_POST['password']))
-            $this->failLogin("No password specified");
+        if (empty($_POST['username'])) $this->failLogin("No user specified");
+        if (empty($_POST['password'])) $this->failLogin("No password specified");
 
-        if (!$this->checkLogin($_POST['username'], $_POST['password']))
+        if (!$this->checkLogin($_POST['username'], $_POST['password'])) {
             $this->failLogin("Incorrect credentials");
+        }
 
         $_SESSION['username'] = $_POST['username'];
         $this->userInfo();
@@ -164,43 +164,33 @@ abstract class Server
     {
         $this->sessionStart();
 
-        if (empty($_REQUEST['broker']))
-            $this->fail("No broker specified");
-        if (empty($_REQUEST['token']))
-            $this->fail("No token specified");
-        if (empty($_REQUEST['checksum']) || $this->generateAttachChecksum($_REQUEST['broker'], $_REQUEST['token']) != $_REQUEST['checksum'])
+        if (empty($_REQUEST['broker'])) $this->fail("No broker specified");
+        if (empty($_REQUEST['token']))  $this->fail("No token specified");
+
+        $checksum = $this->generateAttachChecksum($_REQUEST['broker'], $_REQUEST['token']);
+        $sid = $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
+        error_log('sid: ' . $sid);
+        error_log('checksum: ' . $checksum);
+        if (empty($_REQUEST['checksum'])
+            || $checksum != $_REQUEST['checksum']) {
             $this->fail("Invalid checksum");
-
-        if (!isset(self::$linkPath)) {
-            $link = (session_save_path() ? session_save_path() : sys_get_temp_dir()) . "/sess_" . $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
-            error_log('writing file|' . $link . '|');
-            error_log('session id: ' . session_id());
-            if (!file_exists($link))
-                $attached = file_put_contents($link, session_id());
-            if (!$attached)
-                trigger_error("Failed to attach; Link file wasn't created.", E_USER_ERROR);
-
-            if (!file_exists($link))
-                trigger_error("Failed to attach; Link file wasn't created.", E_USER_ERROR);
-            error_log('number of bytes written: ' . $attached);
-            error_log(error_get_last());
-        } else {
-            $link = "{self::$linkPath}/" . $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
-            if (!file_exists($link))
-                $attached = file_put_contents($link, session_id());
-            if (!$attached)
-                trigger_error("Failed to attach; Link file wasn't created.", E_USER_ERROR);
         }
 
-        //error_log ('request '. json_encode($_REQUEST));
-        if (isset($_REQUEST['returnUrl'])) {
+        // what if there already exists an entry ?
+        $this->cache->set($sid, session_id());
+
+        if (!empty($_REQUEST['returnUrl'])) {
             header('Location: ' . $_REQUEST['returnUrl'], true, 307);
             exit();
         }
 
         // Output an image specially for AJAX apps
-        header("Content-Type: image/png");
-        readfile("empty.png");
+
+        header('Content-type: application/json; charset=UTF-8');
+        echo json_encode(['token' => $_REQUEST['token']]);
+        //echo "{success:true, token:'", $_REQUEST['token'], "'}";
+        //header("Content-Type: image/png");
+        //readfile("empty.png");
     }
 
     /**
@@ -210,15 +200,13 @@ abstract class Server
     public function userInfo()
     {
         $this->sessionStart();
-        if (!isset($_SESSION['username']))
-            $this->failLogin("Not logged in");
+        if (!isset($_SESSION['username'])) $this->failLogin("Not logged in");
 
         $userData = $this->getUserInfo($_SESSION['username']);
         $userData['username'] = $_SESSION['username'];
 
-        forEach($userData as $key => $value)
-        {
-            # TODO: find alternative for htmlspecialchars, as this can be a vulnerability.
+        foreach ($userData as $key => $value) {
+        // TODO: find alternative for htmlspecialchars, as this can be a vulnerability.
             $userData[$key] = htmlspecialchars($value, ENT_COMPAT, 'UTF-8');
         }
 
@@ -236,6 +224,8 @@ abstract class Server
     {
         header("HTTP/1.1 406 Not Acceptable");
         header('Content-type: application/json; charset=UTF-8');
+        error_log($message);
+
         echo json_encode(array('error' => $message));
         exit;
     }
@@ -250,12 +240,24 @@ abstract class Server
     {
         header("HTTP/1.1 401 Unauthorized");
         header('Content-type: application/json; charset=UTF-8');
+        error_log($message);
         echo json_encode(array('error' => $message));
         exit;
+    }
+
+    /**
+     * Create a cache.
+     *
+     * This method is called in the constructor to make a cache to store the broker session id.
+     */
+    protected function createCacheAdapter()
+    {
+        $adapter = new File('/tmp');
+        $adapter->setOption('ttl', 10 * 3600);
+        return new Cache($adapter);
     }
 
     abstract protected function checkLogin($username, $password);
     abstract protected function getBrokerInfo($brokerId);
     abstract protected function getUserInfo($brokerId);
 }
-?>

@@ -20,14 +20,16 @@ if (!$user) {
 	<body>
 		<h1>Single Sign-On demo</h1>
 		<h2><?= $broker->broker ?></h2>
-    <?php if ($user): ?>
+    <?php if ($user) : ?>
     <h3>Logged in</h3>
-    <?php endif ?>
+    <?php
+endif ?>
 
 		<dl>
-			<?php foreach($user as $key => $value): ?>
+			<?php foreach ($user as $key => $value) : ?>
 				<dt><?= $key  ?></dt><dd><?= $value ?></dd>
-            <?php endforeach; ?>
+            <?php
+endforeach; ?>
 		</dl>
 		<a id="logout" href="login.php?logout=1">Logout</a>
 	</body>

@@ -17,11 +17,15 @@
     },
     "require": {
         "php": ">=5.3.0",
-        "codeception/codeception": "*"
+        "codeception/codeception": "*",
+        "desarrolla2/cache":  "dev-master"
     },
     "autoload": {
         "psr-4": {
             "Jasny\\SSO\\": "src/"
         }
+    },
+    "require-dev": {
+        "jasny/php-code-quality": "^1.1"
     }
 }

@@ -6,7 +6,8 @@ $broker = new Jasny\SSO\Broker('http://localhost:9000/examples/server/', 'Alice'
 
 if (!empty($_GET['logout'])) {
     $broker->logout();
-} elseif ($broker->getUserInfo() || ($_SERVER['REQUEST_METHOD'] == 'POST' && $broker->login($_POST['username'], $_POST['password']))) {
+} elseif ($broker->getUserInfo()
+          || ($_SERVER['REQUEST_METHOD'] == 'POST' && $broker->login($_POST['username'], $_POST['password']))) {
     header("Location: index.php", true, 303);
     exit;
 }

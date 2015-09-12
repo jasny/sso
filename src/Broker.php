@@ -1,6 +1,8 @@
 <?php
 namespace Jasny\SSO;
 
+require_once __DIR__ . '/../vendor/autoload.php';
+
 /**
  * Single sign-on broker.
  *
@@ -31,7 +33,7 @@ class Broker
      * Session token of the client
      * @var string
      */
-   public $token;
+    public $token;
 
     /**
      * User info recieved from the server.
@@ -42,18 +44,19 @@ class Broker
     /**
      * Class constructor
      *
-     * @param string $url       Url of SSO server
-     * @param string $broker  My identifier, given by SSO provider.
-     * @param string $secret    My secret word, given by SSO provider.
+     * @param string $url    Url of SSO server
+     * @param string $broker My identifier, given by SSO provider.
+     * @param string $secret My secret word, given by SSO provider.
      */
     public function __construct($url, $broker, $secret)
     {
         $this->url = $url;
         $this->broker = $broker;
         $this->secret = $secret;
-        session_start();
-        //error_log('userinfo: '. $_SESSION['SSO']['userinfo']);
-        error_log('session ' . json_encode($_SESSION));
+
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        //error_log('session ' . json_encode($_SESSION));
+
         if (isset($_SESSION['SSO']['token'])) $this->token = $_SESSION['SSO']['token'];
         // if (isset($_SESSION['SSO']['userinfo'])) $this->userinfo = $_SESSION['SSO']['userinfo'];
 
@@ -67,8 +70,11 @@ class Broker
      */
     protected function getSessionId()
     {
-		if (!isset($this->token)) return null;
-        return "SSO-{$this->broker}-{$this->token}-" . md5('session' . $this->token . $_SERVER['REMOTE_ADDR'] . $this->secret);
+        if (!isset($this->token)) return null;
+
+        $checksum = md5('session' . $this->token . $_SERVER['REMOTE_ADDR'] . $this->secret);
+
+        return "SSO-{$this->broker}-{$this->token}-" . $checksum;
     }
 
     /**
@@ -111,15 +117,21 @@ class Broker
     /**
      * Attach our session to the user's session on the SSO server.
      *
-     * @param string $returnUrl  The URL the client should be returned to after attaching
+     * @param string $returnUrl The URL the client should be returned to after attaching
      */
     public function attach($returnUrl = null)
     {
         error_log('trying to attach');
         if ($this->isAttached()) return;
 
-        if (!isset($returnUrl)) $returnUrl = "http://{$_SERVER["SERVER_NAME"]}{$_SERVER["REQUEST_URI"]}";
-        $url = $this->getAttachUrl() . "&returnUrl=" . urlencode($returnUrl);
+        $url = $this->getAttachUrl();
+
+        if (isset($returnUrl)) {
+            $url .= "&returnUrl=" . urlencode("http://{$_SERVER["SERVER_NAME"]}{$_SERVER["REQUEST_URI"]}");
+        }
+        else if (!empty($_REQUEST['returnUrl'])) {
+            $url .= "&returnUrl=" . urlencode($_REQUEST['returnUrl']);
+        }
 
         header("Location: $url", true, 307);
         echo "You're redirected to <a href=\"$url\">$url</a>";
@@ -141,7 +153,7 @@ class Broker
     /**
      * Get the request url for a command
      *
-     * @param string $command
+     * @param  string $command
      * @return string
      */
     protected function getRequestUrl($command)
@@ -159,34 +171,36 @@ class Broker
     /**
      * Execute on SSO server.
      *
-     * @param string $command  Command
-     * @param array  $params   Post parameters
+     * @param  string $command Command
+     * @param  array  $params  Post parameters
      * @return array
      */
     protected function request($command, $params = array())
     {
         $ch = curl_init($this->getRequestUrl($command));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        error_log($this->getSessionId());
         curl_setopt($ch, CURLOPT_POST, true);
 
         $params[session_name()] = $this->getSessionId();
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
 
         $response = curl_exec($ch);
-        if (curl_errno($ch) != 0) throw new \Exception("Server request failed: " . curl_error($ch));
+        if (curl_errno($ch) != 0) {
+            throw new Exception("Server request failed: " . curl_error($ch));
+        }
 
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE );
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         $contentType = explode('; ', $contentType)[0];
 
         if ($contentType != 'application/json') {
-            throw new \Exception("Response did not come from the SSO server. $response", $httpCode);
+            throw new Exception("Response did not come from the SSO server. $response", $httpCode);
         }
 
         error_log('response ' . $response);
-        $data = json_decode(stripslashes(trim($response)), true);
-        if ($httpCode != 200) throw new \Exception($httpCode);
+        $data = json_decode($response, true);
+        if ($httpCode != 200) throw new Exception($data['error'], $httpCode);
+
         return $data;
     }
 
@@ -197,21 +211,21 @@ class Broker
      * Only brokers marked trused can collect and send the user's credentials. Other brokers should omit $username and
      * $password.
      *
-     * @param string $username
-     * @param string $password
+     * @param  string $username
+     * @param  string $password
      * @return object
      */
     public function login($username = null, $password = null)
     {
-        if (!isset($username)) $username = $_REQUEST['username'];
-        if (!isset($password)) $password = $_REQUEST['password'];
+        if (!isset($username)) $username = $_POST['username'];
+        if (!isset($password)) $password = $_POST['password'];
+
         $result = $this->request('login', compact('username', 'password'));
         if (!array_key_exists('error', $result)) {
             $this->userinfo = $result;
             // $_SESSION['SSO']['userinfo'] = $result;
             error_log('success');
-        }
-        else {
+        } else {
             error_log('failure');
         }
         return $result;
@@ -232,15 +246,13 @@ class Broker
     {
         error_log('trying to get user info');
         try {
-            # TODO: the data is not updated
+            // TODO: the data is not updated
             if (!isset($this->userinfo)) {
                 $this->userinfo = $this->request('userInfo');
             }
 
             return $this->userinfo;
-        }
-        catch (\Exception $ex) {
-            error_log($ex);
+        } catch (Exception $ex) {
             return null;
         }
     }
@@ -253,9 +265,7 @@ class Broker
      */
     public function on($event, $data)
     {
-        if (method_exists($this, "on{$event}")) {
-            $this->{"on{$event}"}($data);
-        }
+        if (method_exists($this, "on{$event}")) $this->{"on{$event}"}($data);
     }
 
     /**
@@ -282,4 +292,3 @@ class Broker
         $this->userinfo = $data;
     }
 }
-?>
