@@ -1,11 +1,11 @@
 <?php
 namespace Jasny\SSO;
-use Jasny\ValidationResult;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Desarrolla2\Cache\Cache;
 use Desarrolla2\Cache\Adapter\File;
+use Jasny\ValidationResult;
 
 /**
  * Single sign-on server.
@@ -57,7 +57,6 @@ abstract class Server
         error_log('request: ' . json_encode($_REQUEST));
         if (isset($_REQUEST[session_name()])
             && preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_REQUEST[session_name()], $matches)) {
-
             error_log('starting broker session');
             $sid = $_REQUEST[session_name()];
             error_log('retrieved sid: '. $sid);

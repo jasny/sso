@@ -9,8 +9,7 @@ if (empty($_REQUEST['command'])) {
     header("HTTP/1.1 406 Not Acceptable");
     echo json_encode(['error' => 'Command not specified']);
     exit();
-}
-else if (realpath($_SERVER["SCRIPT_FILENAME"]) == realpath(__FILE__)) {
+} elseif (realpath($_SERVER["SCRIPT_FILENAME"]) == realpath(__FILE__)) {
     error_log('executing: '. $_REQUEST['command']);
     try {
         $result = $broker->$_REQUEST['command']();
@@ -26,8 +25,7 @@ else if (realpath($_SERVER["SCRIPT_FILENAME"]) == realpath(__FILE__)) {
 
         echo json_encode(['error' => $ex->getMessage()]);
     }
-}
-else {
+} else {
     error_log('nothing to execute');
 
     header("Content-Type: application/json");

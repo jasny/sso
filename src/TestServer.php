@@ -39,11 +39,9 @@ class TestServer extends Server
 
         if (!isset($username)) {
             return ValidationResult::error("username isn't set");
-        }
-        else if (!isset($password)) {
+        } elseif (!isset($password)) {
             return ValidationResult::error("password isn't set");
-        }
-        else if ($username != 'admin' || $password != 'admin') {
+        } elseif ($username != 'admin' || $password != 'admin') {
             return ValidationResult::error("Invalid credentials");
         }
 
@@ -61,4 +59,3 @@ class TestServer extends Server
     //     return new Cache($adapter);
     // }
 }
-?>
