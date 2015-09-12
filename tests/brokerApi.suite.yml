@@ -2,6 +2,6 @@ class_name: ServerApiTester
 modules:
     enabled:
       - REST:
-          url: http://localhost:9001/examples/ajax-broker/ajax.php
+          url: http://127.0.0.1:9001/examples/ajax-broker/ajax.php
           depends: PhpBrowser
           part: Json
