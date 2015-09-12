@@ -1,4 +1,6 @@
 <?php
+
+session_save_path(__DIR__ .'/../../broker-sessions');
 require_once $_SERVER['DOCUMENT_ROOT'] . '/src/Broker.php';
 
 $command = $_REQUEST['command'];

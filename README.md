@@ -7,6 +7,21 @@ There are many single sign-on applications and protocols. Most of these are fair
 
 I&#8217;ve written a simple single sign-on solution (400 lines of code), which works by linking sessions. This solutions works for normal websites as well as AJAX sites.
 
+## Installation and examples
+The dependencies can be installed with the use of composer.
+
+```
+composer install
+```
+
+This library makes use of curl so make sure it is one of the enabled functions.
+The test can be executed by starting two PHP web-servers at the root of the
+package, and running `vendor/bin/codecept run`. One of the web-servers must listen to
+`127.0.0.1:9000`, the other to `127.0.0.1:9001`. The first is the server and the
+second is used for the broker and the client.
+
+Similarly, to run the examples, run the two web servers, and navigate to `127.0.0.1:9001/examples/<example>`.
+
 ## Without SSO
 
 Let&#8217;s start with a website that doesn&#8217;t have SSO.

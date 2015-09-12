@@ -1,5 +1,6 @@
 <?php
-session_save_path('/tmp/SSO2');
+
+session_save_path(__DIR__ .'/../../broker-sessions');
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 $broker = new Jasny\SSO\Broker('http://127.0.0.1:9000/examples/server/', 'Alice', 'Bob');
