@@ -1,7 +1,6 @@
 <?php
 $token = 'hello_world';
 $broker = "Api";
-$checksum = '6ff4f638b06327544f26a248d6ad6890';
 $password = 'admin';
 $username = 'admin';
 

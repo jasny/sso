@@ -2,8 +2,8 @@
 session_save_path('/tmp/SSO2');
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-$broker = new Jasny\SSO\Broker('http://localhost:9000/examples/server/', 'Alice', 'Bob');
-$broker->attach('http://localhost:9001/examples/broker/');
+$broker = new Jasny\SSO\Broker('http://127.0.0.1:9000/examples/server/', 'Alice', 'Bob');
+$broker->attach('http://127.0.0.1:9001/examples/broker/');
 $user = $broker->getUserInfo();
 
 if (!$user) {

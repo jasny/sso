@@ -2,7 +2,7 @@
 require_once $_SERVER['DOCUMENT_ROOT'] . '/src/Broker.php';
 
 $command = $_REQUEST['command'];
-$broker = new Jasny\SSO\Broker('http://localhost:9000/examples/server/', 'BrokerApi', 'BrokerApi');
+$broker = new Jasny\SSO\Broker('http://127.0.0.1:9000/examples/server/', 'BrokerApi', 'BrokerApi');
 
 if (!empty($_REQUEST['token'])) $broker->token = $_REQUEST['token'];
 

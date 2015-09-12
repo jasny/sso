@@ -1,7 +1,7 @@
 <?php
 $token = 'hello_world';
 $broker = "ServerApi";
-$checksum = 'fe3892f0d85b3b92bdda31cbbf993ace';
+$checksum = '514ee01d6ed9a88908790683c203e2ac';
 $password = 'admin';
 $username = 'admin';
 
@@ -9,7 +9,7 @@ $I = new ServerApiTester($scenario);
 $I->defaultArgs = [
     'token' => $token,
     'broker' => $broker, 'checksum' => $checksum,
-    'PHPSESSID' => 'SSO-ServerApi-hello_world-ec31fb7dff02625359acc8d1bd6d9dc0'
+    'PHPSESSID' => 'SSO-ServerApi-hello_world-0949c41dd2c747f8e1d4bfd85dd2f4d8'
 ];
 
 $I->wantTo('attach session and view user info and logout');
