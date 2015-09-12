@@ -18,7 +18,8 @@
     "require": {
         "php": ">=5.3.0",
         "codeception/codeception": "*",
-        "desarrolla2/cache":  "dev-master"
+        "desarrolla2/cache":  "dev-master",
+        "jasny/validation-result": "^0.1.1"
     },
     "autoload": {
         "psr-4": {

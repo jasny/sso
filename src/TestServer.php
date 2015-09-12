@@ -3,6 +3,7 @@ namespace Jasny\SSO;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+use Jasny\ValidationResult;
 use Desarrolla2\Cache\Cache;
 use Desarrolla2\Cache\Adapter\Memory;
 
@@ -32,9 +33,21 @@ class TestServer extends Server
         return self::$brokers[$broker];
     }
 
-    protected function checkLogin($username, $password)
+    protected function authenticate($username, $password)
     {
-        return $username == 'admin' && $password == 'admin';
+        $result = new ValidationResult();
+
+        if (!isset($username)) {
+            return ValidationResult::error("username isn't set");
+        }
+        else if (!isset($password)) {
+            return ValidationResult::error("password isn't set");
+        }
+        else if ($username != 'admin' || $password != 'admin') {
+            return ValidationResult::error("Invalid credentials");
+        }
+
+        return $result;
     }
 
     protected function getUserInfo($user)

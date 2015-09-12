@@ -1,5 +1,6 @@
 <?php
 namespace Jasny\SSO;
+use Jasny\ValidationResult;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -137,8 +138,10 @@ abstract class Server
         if (empty($_POST['username'])) $this->failLogin("No user specified");
         if (empty($_POST['password'])) $this->failLogin("No password specified");
 
-        if (!$this->checkLogin($_POST['username'], $_POST['password'])) {
-            $this->failLogin("Incorrect credentials");
+        $validation = $this->authenticate($_POST['username'], $_POST['password']);
+
+        if (!$validation->succeeded()) {
+            $this->failLogin($validation->getErrors());
         }
 
         $_SESSION['username'] = $_POST['username'];
@@ -188,9 +191,6 @@ abstract class Server
 
         header('Content-type: application/json; charset=UTF-8');
         echo json_encode(['token' => $_REQUEST['token']]);
-        //echo "{success:true, token:'", $_REQUEST['token'], "'}";
-        //header("Content-Type: image/png");
-        //readfile("empty.png");
     }
 
     /**
@@ -226,7 +226,7 @@ abstract class Server
         header('Content-type: application/json; charset=UTF-8');
         error_log($message);
 
-        echo json_encode(array('error' => $message));
+        echo json_encode(['error' => $message]);
         exit;
     }
 
@@ -241,7 +241,7 @@ abstract class Server
         header("HTTP/1.1 401 Unauthorized");
         header('Content-type: application/json; charset=UTF-8');
         error_log($message);
-        echo json_encode(array('error' => $message));
+        echo json_encode(['error' => $message]);
         exit;
     }
 
@@ -257,7 +257,7 @@ abstract class Server
         return new Cache($adapter);
     }
 
-    abstract protected function checkLogin($username, $password);
+    abstract protected function authenticate($username, $password);
     abstract protected function getBrokerInfo($brokerId);
     abstract protected function getUserInfo($brokerId);
 }
