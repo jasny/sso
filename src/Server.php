@@ -31,17 +31,6 @@ abstract class Server
         error_log('request: ' . json_encode($_REQUEST));
     }
 
-    protected function getClientAddress() {
-        if (!empty($_SERVER['REMOTE_ADDR'])) {
-            return $_SERVER['REMOTE_ADDR'];
-        }
-        elseif (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)) {
-            return array_pop(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']));
-        }
-
-        return $clientAddr;
-    }
-
     /**
      * Start session and protect against session hijacking
      */
@@ -61,7 +50,6 @@ abstract class Server
             /* for (cross domain) ajax attach calls */
             if (isset($_POST['clientSid'])
                 && $this->generateSessionId($matches[1], $matches[2], $_POST['clientAddr']) == $sid) {
-
                 error_log('setting sid');
                 session_id($_POST['clientSid']);
                 session_start();
