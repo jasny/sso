@@ -50,6 +50,10 @@ class Broker
      */
     public function __construct($url, $broker, $secret)
     {
+        if (!$url) throw new \InvalidArgumentException("SSO server URL not specified");
+        if (!$broker) throw new \InvalidArgumentException("SSO broker id not specified");
+        if (!$secret) throw new \InvalidArgumentException("SSO broker secret not specified");
+
         $this->url = $url;
         $this->broker = $broker;
         $this->secret = $secret;
