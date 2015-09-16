@@ -55,7 +55,7 @@ With this solution the client only needs to attach the session by providing the 
 
 [![SSO Ajax](http://blog.jasny.net/wp-content/uploads/sso-diagram_ajax-241x300.png "sso-diagram_ajax")](http://blog.jasny.net/wp-content/uploads/sso-diagram_ajax.png)
 
-The client check for the token cookie. It it doesn&#8217;t exists, he requests the attach URL from the broker. This attach url includes the broker name and the token, but not a original request URL. The client will open the received url in an &lt;img&gt; and wait until the image is loaded.
+The client check for the token cookie. If it doesn&#8217;t exists, he requests the attach URL from the broker. This attach url includes the broker name and the token, but not a original request URL. The client will open the received url in an &lt;img&gt; and wait until the image is loaded.
 
 The server attaches the browser session key to the user session. When it&#8217;s done it outputs a PNG image. When this image is received by the client, it knows the server has connected the sessions and the broker can be used for authentication. The broker will work as a proxy, passing commands and requests to the sso server and return results to the client.
 
