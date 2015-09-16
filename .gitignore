@@ -1,6 +1,7 @@
 .DS_Store
 nbproject
 /vendor
+composer.lock
 
 tests/_output/*
 # Elastic Beanstalk Files
