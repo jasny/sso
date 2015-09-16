@@ -2,8 +2,9 @@
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-$broker = new Jasny\SSO\Broker(getenv('SSO_SERVER'), getenv('SSO_ID'), getenv('SSO_TOKEN'));
-$broker->attach('http://' . $_SERVER['HTTP_HOST']);
+$broker = new Jasny\SSO\Broker(getenv('SSO_SERVER_URL'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET'));
+$broker->attach();
+
 $user = $broker->getUserInfo();
 
 if (!$user) {
@@ -12,7 +13,7 @@ if (!$user) {
 }
 
 ?>
-
+<!doctype html>
 <html>
 	<head>
 		<title>Single Sign-On demo (<?= $broker->broker ?>)</title>

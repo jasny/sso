@@ -1,8 +1,9 @@
 <?php
-session_save_path('/tmp/SSO2');
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-$broker = new Jasny\SSO\Broker('http://127.0.0.1:9000/examples/server/', 'Alice', 'Bob');
+$broker = new Jasny\SSO\Broker(getenv('SSO_SERVER_URL'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET'));
+$broker->attach();
 
 if (!empty($_GET['logout'])) {
     $broker->logout();
@@ -15,7 +16,7 @@ if (!empty($_GET['logout'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') $errmsg = "Login failed";
 
 ?>
-
+<!doctype html>
 <html>
 	<head>
 		<title>Single Sign-On demo (<?= $broker->broker ?>) - Login</title>
