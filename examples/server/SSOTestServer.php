@@ -1,13 +1,11 @@
 <?php
-namespace Jasny\SSO;
-
-require_once __DIR__ . '/../vendor/autoload.php';
 
 use Jasny\ValidationResult;
 use Desarrolla2\Cache\Cache;
 use Desarrolla2\Cache\Adapter\Memory;
+use SSO\Server;
 
-class TestServer extends Server
+class SSOTestServer extends Server
 {
     private static $brokers = array (
         'Alice' => array('secret'=>"Bob"),

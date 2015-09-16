@@ -1,10 +1,9 @@
 <?php
 
-session_save_path(__DIR__ .'/../../broker-sessions');
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-$broker = new Jasny\SSO\Broker('http://127.0.0.1:9000/examples/server/', 'Alice', 'Bob');
-$broker->attach('http://127.0.0.1:9001/examples/broker/');
+$broker = new Jasny\SSO\Broker(getenv('SSO_SERVER'), getenv('SSO_ID'), getenv('SSO_TOKEN'));
+$broker->attach('http://' . $_SERVER['HTTP_HOST']);
 $user = $broker->getUserInfo();
 
 if (!$user) {

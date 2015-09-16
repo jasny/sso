@@ -1,9 +1,10 @@
 <?php
+
 require_once __DIR__ . '/../../vendor/autoload.php';
-session_save_path(__DIR__ .'/../../server-sessions');
+require_once __DIR__ . '/SSOTestServer.php';
 
 if (realpath($_SERVER["SCRIPT_FILENAME"]) == realpath(__FILE__) && isset($_REQUEST['command'])) {
-    $sso = new Jasny\SSO\TestServer();
+    $sso = new SSOTestServer();
     $sso->$_REQUEST['command']();
 } else {
     error_log('Unkown command');
