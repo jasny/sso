@@ -128,9 +128,9 @@ class Broker
         $url = $this->getAttachUrl();
 
         if (isset($returnUrl)) {
+            $url .= "&returnUrl=" . urlencode($returnUrl);
+        } else {
             $url .= "&returnUrl=" . urlencode("http://{$_SERVER["SERVER_NAME"]}{$_SERVER["REQUEST_URI"]}");
-        } elseif (!empty($_REQUEST['returnUrl'])) {
-            $url .= "&returnUrl=" . urlencode($_REQUEST['returnUrl']);
         }
 
         header("Location: $url", true, 307);
