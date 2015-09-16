@@ -3,7 +3,7 @@
 use Jasny\ValidationResult;
 use Desarrolla2\Cache\Cache;
 use Desarrolla2\Cache\Adapter\Memory;
-use SSO\Server;
+use Jasny\SSO\Server;
 
 class SSOTestServer extends Server
 {
