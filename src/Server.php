@@ -4,7 +4,7 @@ namespace Jasny\SSO;
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Desarrolla2\Cache\Cache;
-use Desarrolla2\Cache\Adapter\File;
+use Desarrolla2\Cache\Adapter;
 use Jasny\ValidationResult;
 
 /**
@@ -43,8 +43,10 @@ abstract class Server
         // Broker session
         $matches = null;
 
-        if (isset($_REQUEST[session_name()])
-            && preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_REQUEST[session_name()], $matches)) {
+        if (
+            isset($_REQUEST[session_name()])
+            && preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_REQUEST[session_name()], $matches)
+        ) {
             $sid = $_REQUEST[session_name()];
 
             /* for (cross domain) ajax attach calls */
@@ -144,7 +146,7 @@ abstract class Server
 
         $validation = $this->authenticate($_POST['username'], $_POST['password']);
 
-        if (!$validation->succeeded()) {
+        if ($validation->failed()) {
             $this->failLogin($validation->getErrors());
         }
 
@@ -198,7 +200,6 @@ abstract class Server
 
     /**
      * Ouput user information as json.
-     * Doesn't return e-mail address to brokers with security level < 2.
      */
     public function userInfo()
     {
@@ -208,26 +209,21 @@ abstract class Server
         $userData = $this->getUserInfo($_SESSION['username']);
         $userData['username'] = $_SESSION['username'];
 
-        foreach ($userData as $key => $value) {
-        // TODO: find alternative for htmlspecialchars, as this can be a vulnerability.
-            $userData[$key] = htmlspecialchars($value, ENT_COMPAT, 'UTF-8');
-        }
-
         header('Content-type: application/json; charset=UTF-8');
         echo json_encode($userData);
     }
 
     /**
      * An error occured.
-     * I would normaly solve this by throwing an Exception and use an exception handler.
      *
      * @param string $message
      */
     protected function fail($message)
     {
-        header("HTTP/1.1 406 Not Acceptable");
-        header('Content-type: application/json; charset=UTF-8');
         error_log($message);
+            
+        header("HTTP/1.1 400 Bad Request");
+        header('Content-type: application/json; charset=UTF-8');
 
         echo json_encode(['error' => $message]);
         exit;
@@ -235,7 +231,6 @@ abstract class Server
 
     /**
      * Login failure.
-     * I would normaly solve this by throwing a LoginException and use an exception handler.
      *
      * @param string $message
      */
@@ -243,20 +238,19 @@ abstract class Server
     {
         header("HTTP/1.1 401 Unauthorized");
         header('Content-type: application/json; charset=UTF-8');
-        error_log($message);
+        
         echo json_encode(['error' => $message]);
         exit;
     }
 
     /**
-     * Create a cache.
-     *
-     * This method is called in the constructor to make a cache to store the broker session id.
+     * Create a cache to store the broker session id.
      */
     protected function createCacheAdapter()
     {
-        $adapter = new File('/tmp');
+        $adapter = new Adapter\File('/tmp');
         $adapter->setOption('ttl', 10 * 3600);
+        
         return new Cache($adapter);
     }
 
