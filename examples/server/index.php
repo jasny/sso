@@ -1,19 +1,18 @@
 <?php
 
 require_once __DIR__ . '/../../vendor/autoload.php';
-require_once __DIR__ . '/SSOTestServer.php';
+require_once 'MySSOServer.php';
 
-$sso = new SSOTestServer();
-$request = isset($_REQUEST['command']) ? $_REQUEST['command'] : null;
+$ssoServer = new MySSOServer();
+$command = isset($_REQUEST['command']) ? $_REQUEST['command'] : null;
 
-if (!$request || !method_exists($sso, $request)) {
-    error_log('Unkown command');
-    header("HTTP/1.1 406 Not Acceptable");
+if (!$command || !method_exists($ssoServer, $command)) {
+    header("HTTP/1.1 404 Not Found");
     header('Content-type: application/json; charset=UTF-8');
-
-    echo "{error: 'Uknown command'}";
-    die;
+    
+    echo json_encode(['error' => 'Unknown command']);
+    exit();
 }
 
-$sso->$request();
+$result = $ssoServer->$command();
 
