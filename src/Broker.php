@@ -1,7 +1,7 @@
 <?php
 namespace Jasny\SSO;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+use Jasny\ValidationResult;
 
 /**
  * Single sign-on broker.
@@ -40,7 +40,6 @@ class Broker
      * @var array
      */
     protected $userinfo;
-
     
     
     /**
@@ -125,7 +124,7 @@ class Broker
             'broker' => $this->broker,
             'token' => $this->token,
             'checksum' => hash('sha256', 'attach' . $this->token . $_SERVER['REMOTE_ADDR'] . $this->secret)
-        ];
+        ] + $_GET;
         
         return $this->url . "?" . http_build_query($data + $params);
     }
@@ -173,7 +172,7 @@ class Broker
      * @param string       $method  HTTP method: 'GET', 'POST', 'DELETE'
      * @param string       $command Command
      * @param array|string $data    Query or post parameters
-     * @return array
+     * @return array|object
      */
     protected function request($method, $command, $data = null)
     {
@@ -183,7 +182,7 @@ class Broker
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 
-        if ($method === 'POST') {
+        if ($method === 'POST' && !empty($data)) {
             $post = is_string($data) ? $data : http_build_query($data);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
         }
@@ -215,19 +214,20 @@ class Broker
      * Only brokers marked trused can collect and send the user's credentials. Other brokers should omit $username and
      * $password.
      *
-     * @param  string $username
-     * @param  string $password
-     * @return object
+     * @param string $username
+     * @param string $password
+     * @return array  user info
+     * @throws Exception if login fails eg due to incorrect credentials
      */
     public function login($username = null, $password = null)
     {
-        if (!isset($username)) $username = $_POST['username'];
-        if (!isset($password)) $password = $_POST['password'];
+        if (!isset($username) && isset($_POST['username'])) $username = $_POST['username'];
+        if (!isset($password) && isset($_POST['password'])) $password = $_POST['password'];
 
         $result = $this->request('POST', 'login', compact('username', 'password'));
         $this->userinfo = $result;
         
-        return $result;
+        return $this->userinfo;
     }
 
     /**
@@ -235,7 +235,7 @@ class Broker
      */
     public function logout()
     {
-        return $this->request('logout');
+        $this->request('POST', 'logout');
     }
 
     /**
@@ -248,41 +248,5 @@ class Broker
         }
 
         return $this->userinfo;
-    }
-    
-
-    /**
-     * Handle notifications send by the SSO server
-     *
-     * @param string $event
-     * @param object $data
-     */
-    public function on($event, $data)
-    {
-        if (method_exists($this, "on{$event}")) $this->{"on{$event}"}($data);
-    }
-
-    /**
-     * Handle a login notification
-     */
-    protected function onLogin($data)
-    {
-        $this->userinfo = $data;
-    }
-
-    /**
-     * Handle a logout notification
-     */
-    protected function onLogout()
-    {
-        $this->userinfo = null;
-    }
-
-    /**
-     * Handle a notification about a change in the userinfo
-     */
-    protected function onUserinfo($data)
-    {
-        $this->userinfo = $data;
     }
 }

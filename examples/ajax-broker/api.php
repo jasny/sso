@@ -14,14 +14,25 @@ if (empty($_REQUEST['command']) || !method_exists($broker, $_REQUEST['command'])
 try {
     $result = $broker->{$_REQUEST['command']}();
 } catch (Exception $e) {
-    http_response_code($e->getCode() ?: 500);
+    $status = $e->getCode() ?: 500;
     $result = ['error' => $e->getMessage()];
 }
 
-if (!$result) {
-    http_response_code(204);
-    exit();
+// JSONP
+if (!empty($_GET['callback'])) {
+    if (!isset($result)) $result = null;
+    if (!isset($status)) $status = isset($result) ? 200 : 204;
+    
+    header('Content-Type: application/javascript');
+    echo $_GET['callback'] . '(' . json_encode($result) . ', ' . $status . ')';
+    return;
 }
 
-header("Content-Type: application/json");
-echo json_encode($result);
+// REST
+if (!$result) {
+    http_response_code(204);
+} else {
+    http_response_code(isset($status) ? $status : 200);
+    header("Content-Type: application/json");
+    echo json_encode($result);
+}

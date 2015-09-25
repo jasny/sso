@@ -3,6 +3,11 @@
 use Jasny\ValidationResult;
 use Jasny\SSO;
 
+/**
+ * Example SSO server.
+ * 
+ * Normally you'd fetch the broker info and user info from a database, rather then declaring them in the code.
+ */
 class MySSOServer extends SSO\Server
 {
     /**
@@ -83,4 +88,3 @@ class MySSOServer extends SSO\Server
         return $user;
     }
 }
-

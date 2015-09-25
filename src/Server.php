@@ -153,15 +153,17 @@ abstract class Server
      */
     protected function detectReturnType()
     {
-        if (!empty($_REQUEST['return_url'])) {
+        if (!empty($_GET['return_url'])) {
             $this->returnType = 'redirect';
+        } elseif (!empty($_GET['callback'])) {
+            $this->returnType = 'jsonp';
         } elseif (strpos($_SERVER['HTTP_ACCEPT'], 'image/') !== false) {
             $this->returnType = 'image';
         } elseif (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
             $this->returnType = 'json';
-        } elseif (!empty($_REQUEST['return_url'])) {
-            $this->returnType = 'jsonp';
         }
+        
+        error_log($this->returnType);
     }
 
     /**
@@ -204,7 +206,8 @@ abstract class Server
         }
         
         if ($this->returnType === 'jsonp') {
-            echo $_REQUEST['callback'] . "(200);";
+            $data = json_encode(['success' => 'attached']);
+            echo $_REQUEST['callback'] . "($data, 200);";
         }
         
         if ($this->returnType === 'redirect') {
@@ -233,7 +236,7 @@ abstract class Server
     {
         $this->startSession();
 
-        if (empty($_POST['username'])) $this->fail("No user specified", 400);
+        if (empty($_POST['username'])) $this->fail("No username specified", 400);
         if (empty($_POST['password'])) $this->fail("No password specified", 400);
 
         $validation = $this->authenticate($_POST['username'], $_POST['password']);
@@ -287,7 +290,7 @@ abstract class Server
         if ($http_status === 500) trigger_error($message, E_USER_WARNING);
         
         if ($this->returnType === 'jsonp') {
-            echo $_REQUEST['callback'] . "($http_status, '" . addslashes($message) . "');";
+            echo $_REQUEST['callback'] . "(" . json_encode(['error' => $message]) . ", $http_status);";
             exit();
         }
 

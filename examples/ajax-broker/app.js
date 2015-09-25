@@ -9,12 +9,13 @@
   function attach() {
     var req = $.ajax({
       url: 'api.php?command=attach',
+      crossDomain: true,
       dataType: 'jsonp'
     });
     
-    req.done(function(data, code, error) {
+    req.done(function(data, code) {
       if (code && code >= 400) { // jsonp failure
-        showError(error);
+        showError(data.error);
         return;
       }
       
@@ -22,7 +23,7 @@
     });
     
     req.fail(function(jqxhr) {
-        showError(jqxhr.responseJSON || jqxhr.textResponse)
+      showError(jqxhr.responseJSON || jqxhr.textResponse)
     });
   }
     
@@ -36,6 +37,7 @@
   function doApiRequest(command, params, callback) {
     var req = $.ajax({
       url: 'api.php?command=' + command,
+      method: params ? 'POST' : 'GET',
       data: params,
       dataType: 'json'
     });
@@ -70,7 +72,7 @@
    * @param info
    */
   function showUserInfo(info) {
-    $('body').removeClass('anonymous, authenticated');
+    $('body').removeClass('anonymous authenticated');
     $('#user-info').html('');
     
     if (info) {
@@ -89,17 +91,17 @@
   $('#login-form').on('submit', function(e) {
     e.preventDefault();
     
-    $('#error').text('').show();
+    $('#error').text('').hide();
     
     var data = {
-      username: $(this).find('input[name="username"]').value,
-      password: $(this).find('input[name="password"]').value
+      username: this.username.value,
+      password: this.password.value
     };
-
+    
     doApiRequest('login', data, showUserInfo);
   });
   
   $('#logout').on('click', function() {
-    doApiRequest('logout', null, function() { showUserInfo(null); });
+    doApiRequest('logout', {}, function() { showUserInfo(null); });
   })
 }(jQuery);
