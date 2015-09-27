@@ -8,3 +8,4 @@ tests/_output/*
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+/tests/_support/_generated/
