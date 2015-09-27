@@ -1,0 +1,11 @@
+.DS_Store
+nbproject
+/vendor
+composer.lock
+
+tests/_output/*
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+/tests/_support/_generated/

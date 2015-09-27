@@ -1,0 +1,7 @@
+class_name: ServerApiTester
+modules:
+    enabled:
+      - REST:
+          url: http://127.0.0.1:9000/examples/server
+          depends: PhpBrowser
+          part: Json
