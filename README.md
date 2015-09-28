@@ -8,24 +8,24 @@ logging into a single website will authenticate you for all affiliate sites.
 
 When using SSO, when can distinguish 3 parties:
 
-Client - This is the browser of the visitor
-Broker - The website which is visited
-Server - The place that holds the user info and credentials
+* Client - This is the browser of the visitor
+* Broker - The website which is visited
+* Server - The place that holds the user info and credentials
 
-The brokers has and id and a secret. These are know to both the broker and server.
+The broker has and id and a secret. These are know to both the broker and server.
 
-When the client visits the broker, it creates a random token, which is stored in a cookie. The broker will then send the
-client to the server, passing along the broker's id and . The server creates a hash using the broker id, broker secret
-and the token. This hash is used to create a link to the users session. When the link is created the server redirects
-the client back to the broker.
+When the client visits the broker, it creates a random token, which is stored in a cookie. The broker will then send
+the client to the server, passing along the broker's id and . The server creates a hash using the broker id, broker
+secret and the token. This hash is used to create a link to the users session. When the link is created the server
+redirects the client back to the broker.
 
 The broker can create the same link hash using the token (from the cookie), the broker id and the broker secret. When
 doing requests, it passes that has as session id.
 
 The server will notice that the session id is a link and use the linked session. As such, the broker and client are
-using the same session. When another brokers joins in, it will also use the same session.
+using the same session. When another broker joins in, it will also use the same session.
 
-For a more indepth explination, please [read this article](https://github.com/jasny/sso/wiki).
+For a more indepth explanation, please [read this article](https://github.com/jasny/sso/wiki).
 
 ## Installation
 
