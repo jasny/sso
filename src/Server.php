@@ -87,12 +87,14 @@ abstract class Server
         session_id($linkedId);
         session_start();
         
-        if (!isset($_SESSION['client_addr'])) {
+        $clientAddr = $this->getSessionData('client_addr');
+        
+        if (!$clientAddr) {
             session_destroy();
             return $this->fail("Unknown client IP address for the attached session", 500);
         }
 
-        if ($this->generateSessionId($brokerId, $token, $_SESSION['client_addr']) != $sid) {
+        if ($this->generateSessionId($brokerId, $token, $clientAddr) != $sid) {
             session_destroy();
             return $this->fail("Checksum failed: Client IP address may have changed", 403);
         }
@@ -108,12 +110,14 @@ abstract class Server
     {
         if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 
-        if (isset($_SESSION['client_addr']) && $_SESSION['client_addr'] !== $_SERVER['REMOTE_ADDR']) {
+        $clientAddr = $this->getSessionData('client_addr');
+        
+        if ($clientAddr && $clientAddr !== $_SERVER['REMOTE_ADDR']) {
             session_regenerate_id(true);
         }
         
-        if (!isset($_SESSION['client_addr'])) {
-            $_SESSION['client_addr'] = $_SERVER['REMOTE_ADDR'];
+        if (!$clientAddr) {
+            $this->setSessionData('client_addr', $_SERVER['REMOTE_ADDR']);
         }
     }
     
@@ -187,7 +191,7 @@ abstract class Server
         $this->startUserSession();
         $sid = $this->generateSessionId($_REQUEST['broker'], $_REQUEST['token']);
         
-        $this->cache->set($sid, session_id());
+        $this->cache->set($sid, $this->getSessionData('id'));
         $this->outputAttachSuccess();
     }
 
@@ -245,7 +249,7 @@ abstract class Server
             return $this->fail($validation->getError(), 400);
         }
 
-        $_SESSION['sso_user'] = $_POST['username'];
+        $this->setSessionData('sso_user', $_POST['username']);
         $this->userInfo();
     }
 
@@ -255,7 +259,7 @@ abstract class Server
     public function logout()
     {
         $this->startSession();
-        unset($_SESSION['sso_user']);
+        $this->setSessionData('sso_user', null);
 
         header('Content-type: application/json; charset=UTF-8');
         http_response_code(204);
@@ -269,8 +273,10 @@ abstract class Server
         $this->startSession();
         $user = null;
         
-        if (isset($_SESSION['sso_user'])) {
-            $user = $this->getUserInfo($_SESSION['sso_user']);
+        $username = $this->getSessionData('sso_user');
+        
+        if ($username) {
+            $user = $this->getUserInfo($username);
             if (!$user) return $this->fail("User not found", 500); // Shouldn't happen
         }
 
@@ -278,6 +284,35 @@ abstract class Server
         echo json_encode($user);
     }
 
+    
+    /**
+     * Set session data
+     * 
+     * @param string $key
+     * @param string $value
+     */
+    protected function setSessionData($key, $value)
+    {
+        if (!isset($value)) {
+            unset($_SESSION[$key]);
+            return;
+        }
+        
+        $_SESSION[$key] = $value;
+    }
+    
+    /**
+     * Get session data
+     * 
+     * @param type $key
+     */
+    protected function getSessionData($key)
+    {
+        if ($key === 'id') return session_id();
+        
+        return isset($_SESSION[$key]) ? $_SESSION[$key] : null;
+    }
+    
 
     /**
      * An error occured.
