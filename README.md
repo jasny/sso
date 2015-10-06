@@ -27,6 +27,17 @@ using the same session. When another broker joins in, it will also use the same 
 
 For a more indepth explanation, please [read this article](https://github.com/jasny/sso/wiki).
 
+#### How is this different from OAuth?
+
+With OAuth, you can authenticate a user at an external server and get access to their profile info. However you
+aren't sharing a session.
+
+A user logs in to website foo.com using Google OAuth. Next he visits website bar.org which also uses Google OAuth.
+Regardless of that, he is still required to press on the 'login' button on bar.org.
+
+With Jasny/SSO both websites use the same session. So when the user visits bar.org, he's automatically logged in.
+When he logs out (on either of the sites), he's logged out for both.
+
 ## Installation
 
 Install this library through composer
