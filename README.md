@@ -42,7 +42,7 @@ When he logs out (on either of the sites), he's logged out for both.
 
 Install this library through composer
 
-    composer request jasny/sso
+    composer require jasny/sso
 
 ## Usage
 
