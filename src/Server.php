@@ -1,8 +1,6 @@
 <?php
 namespace Jasny\SSO;
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
 use Desarrolla2\Cache\Cache;
 use Desarrolla2\Cache\Adapter;
 
@@ -145,6 +143,7 @@ abstract class Server
     protected function generateAttachChecksum($brokerId, $token)
     {
         $broker = $this->getBrokerInfo($brokerId);
+        
         if (!isset($broker)) return null;
 
         return hash('sha256', 'attach' . $token . $_SERVER['REMOTE_ADDR'] . $broker['secret']);
