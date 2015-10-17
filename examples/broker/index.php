@@ -29,7 +29,7 @@ if (!$user) {
 
             <dl class="dl-horizontal">
                 <?php foreach ($user as $key => $value) : ?>
-                    <dt><?= $key ?></dt><dd><?= $value ?></dd>
+                    <dt><?= $key ?></dt><dd><?= is_scalar($value) ? $value : var_dump($value) ?></dd>
                 <?php endforeach; ?>
             </dl>
             
