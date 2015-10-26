@@ -4,14 +4,19 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 $broker = new Jasny\SSO\Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET'));
 $broker->attach();
 
-if (!empty($_GET['logout'])) {
-    $broker->logout();
-} elseif ($broker->getUserInfo() || ($_SERVER['REQUEST_METHOD'] == 'POST' && $broker->login($_POST['username'], $_POST['password']))) {
-    header("Location: index.php", true, 303);
-    exit;
+try {
+    if (!empty($_GET['logout'])) {
+        $broker->logout();
+    } elseif ($broker->getUserInfo() || ($_SERVER['REQUEST_METHOD'] == 'POST' && $broker->login($_POST['username'], $_POST['password']))) {
+        header("Location: index.php", true, 303);
+        exit;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] == 'POST') $errmsg = "Login failed";
+} catch (Jasny\SSO\Exception $e) {
+    $errmsg = $e->getMessage();
 }
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') $errmsg = "Login failed";
 ?>
 <!doctype html>
 <html>
