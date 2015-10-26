@@ -115,10 +115,9 @@ abstract class Server
         }
         
         if (!$clientAddr) {
-            $this->setSessionData('client_addr', $_SERVER['REMOTE_ADDR']);
+            $this->setSessionData('client_addr', static::getRemoteAddr());
         }
-    }
-    
+    }    
     
     /**
      * Generate session id from session token
@@ -130,7 +129,7 @@ abstract class Server
         $broker = $this->getBrokerInfo($brokerId);
 
         if (!isset($broker)) return null;
-        if (!isset($client_addr)) $client_addr = $_SERVER['REMOTE_ADDR'];
+        if (!isset($client_addr)) $client_addr = static::getRemoteAddr();
 
         return "SSO-{$brokerId}-{$token}-" . hash('sha256', 'session' . $token . $client_addr . $broker['secret']);
     }
@@ -146,7 +145,7 @@ abstract class Server
         
         if (!isset($broker)) return null;
 
-        return hash('sha256', 'attach' . $token . $_SERVER['REMOTE_ADDR'] . $broker['secret']);
+        return hash('sha256', 'attach' . $token . static::getRemoteAddr() . $broker['secret']);
     }
     
 
@@ -367,5 +366,16 @@ abstract class Server
      * @return array|object
      */
     abstract protected function getUserInfo($username);
+    
+    
+    /**
+     * Get the client IP address
+     *
+     * @return string
+     */
+    protected static function getRemoteAddr()
+    {
+        return $_SERVER['REMOTE_ADDR'];
+    }
 }
 

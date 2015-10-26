@@ -41,7 +41,6 @@ class Broker
      */
     protected $userinfo;
     
-    
     /**
      * Class constructor
      *
@@ -60,6 +59,8 @@ class Broker
         $this->secret = $secret;
         
         if (isset($_COOKIE[$this->getCookieName()])) $this->token = $_COOKIE[$this->getCookieName()];
+        
+        
     }
     
     /**
@@ -72,7 +73,7 @@ class Broker
      */
     protected function getCookieName()
     {
-        return 'sso_token_' . strtolower($this->broker);
+        return 'sso_token_' . preg_replace('/[_\W]+/', '_', strtolower($this->broker));
     }
 
     /**
@@ -84,7 +85,7 @@ class Broker
     {
         if (!$this->token) return null;
 
-        $checksum = hash('sha256', 'session' . $this->token . $_SERVER['REMOTE_ADDR'] . $this->secret);
+        $checksum = hash('sha256', 'session' . $this->token . static::getRemoteAddr() . $this->secret);
         return "SSO-{$this->broker}-{$this->token}-$checksum";
     }
 
@@ -118,12 +119,12 @@ class Broker
     public function getAttachUrl($params = [])
     {
         $this->generateToken();
-
+        
         $data = [
             'command' => 'attach',
             'broker' => $this->broker,
             'token' => $this->token,
-            'checksum' => hash('sha256', 'attach' . $this->token . $_SERVER['REMOTE_ADDR'] . $this->secret)
+            'checksum' => hash('sha256', 'attach' . $this->token . static::getRemoteAddr() . $this->secret)
         ] + $_GET;
         
         return $this->url . "?" . http_build_query($data + $params);
@@ -248,5 +249,16 @@ class Broker
         }
 
         return $this->userinfo;
+    }
+
+
+    /**
+     * Get the client IP address
+     *
+     * @return string
+     */
+    protected static function getRemoteAddr()
+    {
+        return $_SERVER['REMOTE_ADDR'];
     }
 }
