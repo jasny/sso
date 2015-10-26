@@ -20,20 +20,17 @@ if (!$user) {
 <html>
     <head>
         <title><?= $broker->broker ?> (Single Sign-On demo)</title>
-        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">        
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
     </head>
     <body>
         <div class="container">
             <h1><?= $broker->broker ?> <small>(Single Sign-On demo)</small></h1>
             <h3>Logged in</h3>
-
-            <dl class="dl-horizontal">
-                <?php foreach ($user as $key => $value) : ?>
-                    <dt><?= $key ?></dt><dd><?= is_scalar($value) ? $value : var_dump($value) ?></dd>
-                <?php endforeach; ?>
-            </dl>
             
+            <pre><?= json_encode($user, JSON_PRETTY_PRINT); ?></pre>
+
             <a id="logout" class="btn btn-default" href="login.php?logout=1">Logout</a>
         </div>
     </body>
 </html>
+
