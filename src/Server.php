@@ -48,31 +48,19 @@ abstract class Server
         return new Cache($adapter);
     }
     
-
-    /**
-     * Start session and protect against session hijacking
-     */
-    protected function startSession()
-    {
-        $matches = null;
-
-        if (
-            isset($_GET['sso_session'])
-            && preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_GET['sso_session'], $matches)
-        ) {
-            $this->startBrokerSession($_GET['sso_session'], $matches[1], $matches[2]);
-        } else {
-            $this->startUserSession();
-        }
-    }
-
     /**
      * Start the session for broker requests to the SSO server
      */
-    protected function startBrokerSession($sid, $brokerId, $token)
+    protected function startBrokerSession()
     {
-        $linkedId = $this->cache->get($sid);
+        if (!isset($_GET['sso_session'])) {
+            return $this->fail("No session");
+        }
         
+        $sid = $_GET['sso_session'];
+        
+        $linkedId = $this->cache->get($sid);
+    
         if (!$linkedId) {
             return $this->fail("The broker session id isn't attached to a user session", 403);
         }
@@ -84,21 +72,40 @@ abstract class Server
         
         session_id($linkedId);
         session_start();
+
+        $brokerId = $this->validateBrokerSessionId($sid);
+
+        $this->broker = $brokerId;
+        return;
+    }
+    
+    /**
+     * Validate the broker session id
+     * 
+     * @return string
+     */
+    protected function validateBrokerSessionId($sid)
+    {
+        $matches = null;
+        
+        if (!preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_GET['sso_session'], $matches)) {
+            return $this->fail("Invalid session id");
+        }
+        
+        $brokerId = $matches[1];
+        $token = $matches[2];
         
         $clientAddr = $this->getSessionData('client_addr');
         
         if (!$clientAddr) {
-            session_destroy();
             return $this->fail("Unknown client IP address for the attached session", 500);
         }
 
         if ($this->generateSessionId($brokerId, $token, $clientAddr) != $sid) {
-            session_destroy();
             return $this->fail("Checksum failed: Client IP address may have changed", 403);
         }
-
-        $this->broker = $brokerId;
-        return;
+        
+        return $brokerId;
     }
 
     /**
@@ -236,7 +243,7 @@ abstract class Server
      */
     public function login()
     {
-        $this->startSession();
+        $this->startBrokerSession();
 
         if (empty($_POST['username'])) $this->fail("No username specified", 400);
         if (empty($_POST['password'])) $this->fail("No password specified", 400);
@@ -256,7 +263,7 @@ abstract class Server
      */
     public function logout()
     {
-        $this->startSession();
+        $this->startBrokerSession();
         $this->setSessionData('sso_user', null);
 
         header('Content-type: application/json; charset=UTF-8');
@@ -268,7 +275,7 @@ abstract class Server
      */
     public function userInfo()
     {
-        $this->startSession();
+        $this->startBrokerSession();
         $user = null;
         
         $username = $this->getSessionData('sso_user');
