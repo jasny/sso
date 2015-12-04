@@ -182,6 +182,7 @@ class Broker
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
 
         if ($method === 'POST' && !empty($data)) {
             $post = is_string($data) ? $data : http_build_query($data);
@@ -241,6 +242,8 @@ class Broker
 
     /**
      * Get user information.
+     *
+     * @return object|null
      */
     public function getUserInfo()
     {
@@ -249,6 +252,26 @@ class Broker
         }
 
         return $this->userinfo;
+    }
+    
+    /**
+     * Magic method to do arbitrary request
+     *
+     * @param string $fn
+     * @param array  $args
+     * @return mixed
+     */
+    public function __call($fn, $args)
+    {
+        $sentence = strtolower(preg_replace('/([a-z0-9])([A-Z])/', '$1 $2', $fn));
+        $parts = explode(' ', $sentence);
+        
+        $method = count($parts) > 1 && in_array(strtoupper($parts[0]), ['GET', 'DELETE'])
+            ? strtoupper(array_shift($parts))
+            : 'POST';
+        $command = join('-', $parts);
+        
+        return $this->request($method, $command, $args);
     }
 
 
