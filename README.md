@@ -53,7 +53,7 @@ These methods are called fetch data from a data souce (like a DB).
 
 ```php
 class MySSOServer extends Jasny\SSO\Server
-{    
+{
     /**
      * Authenticate using user credentials
      *
@@ -92,6 +92,9 @@ class MySSOServer extends Jasny\SSO\Server
 
 The MySSOServer class can be used as controller in an MVC framework.
 
+Alternatively you can use MySSOServer as library class. In that case pass option `fail_exception` to the constructor.
+This will make the object throw a Jasny\SSO\Exception, rather than set the HTTP response and exit.
+
 For more information, checkout the `server` example.
 
 #### Broker
@@ -111,6 +114,8 @@ $broker->attach();
 $user = $boker->getUserInfo();
 echo json_encode($user);
 ```
+
+For more information, checkout the `broker` and `ajax-broker` example.
 
 ## Examples
 

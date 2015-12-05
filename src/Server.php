@@ -15,6 +15,11 @@ use Desarrolla2\Cache\Adapter;
 abstract class Server
 {
     /**
+     * @var array
+     */
+    protected $options;
+    
+    /**
      * Cache that stores the special session data for the brokers.
      *
      * @var Cache
@@ -26,12 +31,20 @@ abstract class Server
      */
     protected $returnType;
 
+    /**
+     * @var mixed
+     */
+    protected $brokerId;
+
 
     /**
      * Class constructor
+     *
+     * @param array $options
      */
-    public function __construct()
+    public function __construct(array $options = [])
     {
+        $this->options = $options;
         $this->cache = $this->createCacheAdapter();
     }
 
@@ -51,10 +64,12 @@ abstract class Server
     /**
      * Start the session for broker requests to the SSO server
      */
-    protected function startBrokerSession()
+    public function startBrokerSession()
     {
+        if (isset($this->brokerId)) return;
+    
         if (!isset($_GET['sso_session'])) {
-            return $this->fail("No session");
+            return $this->fail("No session", 400);
         }
         
         $sid = $_GET['sso_session'];
@@ -66,23 +81,20 @@ abstract class Server
         }
 
         if (session_status() === PHP_SESSION_ACTIVE) {
-            if ($linkedId !== session_id()) throw new \Exception("Session has already started.");
+            if ($linkedId !== session_id()) throw new \Exception("Session has already started", 400);
             return;
         }
         
         session_id($linkedId);
         session_start();
 
-        $brokerId = $this->validateBrokerSessionId($sid);
-
-        $this->broker = $brokerId;
-        return;
+        $this->brokerId = $this->validateBrokerSessionId($sid);
     }
     
     /**
      * Validate the broker session id
      * 
-     * @return string
+     * @return string  the broker id
      */
     protected function validateBrokerSessionId($sid)
     {
@@ -327,6 +339,10 @@ abstract class Server
      */
     protected function fail($message, $http_status = 500)
     {
+        if (!empty($this->options['fail_exception'])) {
+            throw new Exception($message, $http_status);
+        }
+    
         if ($http_status === 500) trigger_error($message, E_USER_WARNING);
         
         if ($this->returnType === 'jsonp') {
