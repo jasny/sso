@@ -111,7 +111,7 @@ When the session is attached you can do actions as login/logout or get the user'
 $broker = new Jasny\SSO\Broker($serverUrl, $brokerId, $brokerSecret);
 $broker->attach();
 
-$user = $boker->getUserInfo();
+$user = $broker->getUserInfo();
 echo json_encode($user);
 ```
 
