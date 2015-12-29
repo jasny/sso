@@ -17,7 +17,7 @@
     },
     "require": {
         "php": ">=5.5.0",
-        "desarrolla2/cache": "^1.8",
+        "desarrolla2/cache": "^2.0",
         "jasny/validation-result": "^0.1.1"
     },
     "require-dev": {
