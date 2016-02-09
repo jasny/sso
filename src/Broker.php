@@ -199,7 +199,6 @@ class Broker
 
         if ($contentType != 'application/json') {
             $message = "Expected application/json response, got $contentType";
-            error_log($message . "\n\n" . $response);
             throw new Exception($message, $httpCode);
         }
 
