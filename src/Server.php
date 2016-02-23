@@ -129,7 +129,7 @@ abstract class Server
 
         $clientAddr = $this->getSessionData('client_addr');
         
-        if ($clientAddr && $clientAddr !== $_SERVER['REMOTE_ADDR']) {
+        if ($clientAddr && $clientAddr !== static::getRemoteAddr()) {
             session_regenerate_id(true);
         }
         
@@ -398,6 +398,11 @@ abstract class Server
      */
     protected static function getRemoteAddr()
     {
+        $headers = apache_request_headers();
+        if (array_key_exists('X-Forwarded-For', $headers)){
+            return $headers['X-Forwarded-For'];
+        }
+        
         return $_SERVER['REMOTE_ADDR'];
     }
 }
