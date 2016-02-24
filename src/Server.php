@@ -183,8 +183,6 @@ abstract class Server
         } elseif (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
             $this->returnType = 'json';
         }
-        
-        error_log($this->returnType);
     }
 
     /**
