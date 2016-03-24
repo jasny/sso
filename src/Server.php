@@ -110,7 +110,7 @@ abstract class Server
         $clientAddr = $this->getSessionData('client_addr');
         
         if (!$clientAddr) {
-            return $this->fail("Unknown client IP address for the attached session", 500);
+            return $this->fail("Unknown client IP address for the attached session", 403);
         }
 
         if ($this->generateSessionId($brokerId, $token, $clientAddr) != $sid) {
