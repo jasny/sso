@@ -59,8 +59,7 @@ class Broker
         $this->secret = $secret;
         
         if (isset($_COOKIE[$this->getCookieName()])) $this->token = $_COOKIE[$this->getCookieName()];
-        
-        
+
     }
     
     /**
@@ -98,6 +97,15 @@ class Broker
         
         $this->token = base_convert(md5(uniqid(rand(), true)), 16, 36);
         setcookie($this->getCookieName(), $this->token, time() + 3600);
+    }
+
+    /**
+     * Trash session token
+     */
+    public function trashToken()
+    {
+        unset($this->token);
+        setcookie($this->getCookieName(), null, time() - 1);
     }
 
     /**
@@ -191,21 +199,36 @@ class Broker
 
         $response = curl_exec($ch);
         if (curl_errno($ch) != 0) {
-            throw new Exception("Server request failed: " . curl_error($ch), 500);
+            $message = 'Server request failed: ' . curl_error($ch);
+            return $this->fail($message);
         }
         
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         list($contentType) = explode(';', curl_getinfo($ch, CURLINFO_CONTENT_TYPE));
 
         if ($contentType != 'application/json') {
-            $message = "Expected application/json response, got $contentType";
-            throw new Exception($message, $httpCode);
+            $message = 'Expected application/json response, got ' . $contentType;
+            return $this->fail($message, $httpCode);
         }
 
         $data = json_decode($response, true);
-        if ($httpCode >= 400) throw new Exception($data['error'] ?: $response, $httpCode);
+        if ($httpCode >= 400) return $this->fail($data['error'] ?: $response, $httpCode);
 
         return $data;
+    }
+
+    /**
+     * An error occured.
+     *
+     * @param     $message
+     * @param int $http_status
+     *
+     * @throws Exception
+     */
+    protected function fail($message, $http_status = 500)
+    {
+        $this->trashToken();
+        throw new Exception($message, $http_status);
     }
 
 
