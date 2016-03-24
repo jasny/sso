@@ -9,7 +9,12 @@ if (isset($_GET['sso_error'])) {
 $broker = new Jasny\SSO\Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET'));
 $broker->attach(true);
 
-$user = $broker->getUserInfo();
+try {
+    $user = $broker->getUserInfo();
+} catch (\Jasny\SSO\Exception $e) {
+    header("Location: error.php?sso_error=" . $e->getMessage(), true, 307);
+    exit;
+}
 
 if (!$user) {
     header("Location: login.php", true, 307);
