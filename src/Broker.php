@@ -82,7 +82,7 @@ class Broker
      */
     protected function getSessionId()
     {
-        if (!$this->token) return null;
+        if (isset($this->token)) return null;
 
         $checksum = hash('sha256', 'session' . $this->token . static::getRemoteAddr() . $this->secret);
         return "SSO-{$this->broker}-{$this->token}-$checksum";
