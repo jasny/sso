@@ -202,7 +202,7 @@ class Broker
         $response = curl_exec($ch);
         if (curl_errno($ch) != 0) {
             $message = 'Server request failed: ' . curl_error($ch);
-            return $this->fail($message);
+            throw new Exception($message);
         }
 
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -210,7 +210,7 @@ class Broker
 
         if ($contentType != 'application/json') {
             $message = 'Expected application/json response, got ' . $contentType;
-            return $this->fail($message, $httpCode);
+            throw new Exception($message);
         }
 
         $data = json_decode($response, true);

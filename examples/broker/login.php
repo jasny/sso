@@ -1,4 +1,5 @@
 <?php
+use Jasny\SSO\NotAttachedException;
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 $broker = new Jasny\SSO\Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET'));
@@ -13,6 +14,9 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] == 'POST') $errmsg = "Login failed";
+} catch (NotAttachedException $e) {
+    header('Location: ' . $_SERVER['REQUEST_URI']);
+    exit;
 } catch (Jasny\SSO\Exception $e) {
     $errmsg = $e->getMessage();
 }
