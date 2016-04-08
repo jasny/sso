@@ -23,7 +23,7 @@ try {
     <head>
         <title><?= $broker->broker ?> | Login (Single Sign-On demo)</title>
         <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
-        
+
         <style>
             h1 {
                 margin-bottom: 30px;

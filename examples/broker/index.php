@@ -1,4 +1,7 @@
 <?php
+use Jasny\SSO\NotAttachedException;
+use Jasny\SSO\Exception as SsoException;
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 if (isset($_GET['sso_error'])) {
@@ -11,9 +14,11 @@ $broker->attach(true);
 
 try {
     $user = $broker->getUserInfo();
-} catch (\Jasny\SSO\Exception $e) {
-    header("Location: error.php?sso_error=" . $e->getMessage(), true, 307);
+} catch (NotAttachedException $e) {
+    header('Location: ' . $_SERVER['REQUEST_URI']);
     exit;
+} catch (SsoException $e) {
+    header("Location: error.php?sso_error=" . $e->getMessage(), true, 307);
 }
 
 if (!$user) {
@@ -31,7 +36,7 @@ if (!$user) {
         <div class="container">
             <h1><?= $broker->broker ?> <small>(Single Sign-On demo)</small></h1>
             <h3>Logged in</h3>
-            
+
             <pre><?= json_encode($user, JSON_PRETTY_PRINT); ?></pre>
 
             <a id="logout" class="btn btn-default" href="login.php?logout=1">Logout</a>

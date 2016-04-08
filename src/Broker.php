@@ -40,7 +40,7 @@ class Broker
      * @var array
      */
     protected $userinfo;
-    
+
     /**
      * Class constructor
      *
@@ -57,17 +57,16 @@ class Broker
         $this->url = $url;
         $this->broker = $broker;
         $this->secret = $secret;
-        
-        if (isset($_COOKIE[$this->getCookieName()])) $this->token = $_COOKIE[$this->getCookieName()];
 
+        if (isset($_COOKIE[$this->getCookieName()])) $this->token = $_COOKIE[$this->getCookieName()];
     }
-    
+
     /**
      * Get the cookie name.
-     * 
+     *
      * Note: Using the broker name in the cookie name.
      * This resolves issues when multiple brokers are on the same domain.
-     * 
+     *
      * @return string
      */
     protected function getCookieName()
@@ -94,18 +93,18 @@ class Broker
     public function generateToken()
     {
         if (isset($this->token)) return;
-        
+
         $this->token = base_convert(md5(uniqid(rand(), true)), 16, 36);
         setcookie($this->getCookieName(), $this->token, time() + 3600);
     }
 
     /**
-     * Trash session token
+     * Clears session token
      */
-    public function trashToken()
+    public function clearToken()
     {
-        unset($this->token);
-        setcookie($this->getCookieName(), null, time() - 1);
+        setcookie($this->getCookieName(), null, 1);
+        $this->token = null;
     }
 
     /**
@@ -127,14 +126,14 @@ class Broker
     public function getAttachUrl($params = [])
     {
         $this->generateToken();
-        
+
         $data = [
             'command' => 'attach',
             'broker' => $this->broker,
             'token' => $this->token,
             'checksum' => hash('sha256', 'attach' . $this->token . static::getRemoteAddr() . $this->secret)
         ] + $_GET;
-        
+
         return $this->url . "?" . http_build_query($data + $params);
     }
 
@@ -151,7 +150,7 @@ class Broker
             $protocol = !empty($_SERVER['HTTPS']) ? 'https://' : 'http://';
             $returnUrl = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
         }
-        
+
         $params = ['return_url' => $returnUrl];
         $url = $this->getAttachUrl($params);
 
@@ -171,7 +170,7 @@ class Broker
     {
         $params['command'] = $command;
         $params['sso_session'] = $this->getSessionId();
-        
+
         return $this->url . '?' . http_build_query($params);
     }
 
@@ -185,8 +184,11 @@ class Broker
      */
     protected function request($method, $command, $data = null)
     {
+        if (!$this->isAttached()) {
+            throw new NotAttachedException('No token');
+        }
         $url = $this->getRequestUrl($command, !$data || $method === 'POST' ? [] : $data);
-        
+
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
@@ -202,7 +204,7 @@ class Broker
             $message = 'Server request failed: ' . curl_error($ch);
             return $this->fail($message);
         }
-        
+
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         list($contentType) = explode(';', curl_getinfo($ch, CURLINFO_CONTENT_TYPE));
 
@@ -212,23 +214,13 @@ class Broker
         }
 
         $data = json_decode($response, true);
-        if ($httpCode >= 400) return $this->fail($data['error'] ?: $response, $httpCode);
+        if ($httpCode == 403) {
+            $this->clearToken();
+            throw new NotAttachedException($data['error'] ?: $response, $httpCode);
+        }
+        if ($httpCode >= 400) throw new Exception($data['error'] ?: $response, $httpCode);
 
         return $data;
-    }
-
-    /**
-     * An error occured.
-     *
-     * @param     $message
-     * @param int $http_status
-     *
-     * @throws Exception
-     */
-    protected function fail($message, $http_status = 500)
-    {
-        $this->trashToken();
-        throw new Exception($message, $http_status);
     }
 
 
@@ -250,7 +242,7 @@ class Broker
 
         $result = $this->request('POST', 'login', compact('username', 'password'));
         $this->userinfo = $result;
-        
+
         return $this->userinfo;
     }
 
@@ -275,7 +267,7 @@ class Broker
 
         return $this->userinfo;
     }
-    
+
     /**
      * Magic method to do arbitrary request
      *
@@ -287,12 +279,12 @@ class Broker
     {
         $sentence = strtolower(preg_replace('/([a-z0-9])([A-Z])/', '$1 $2', $fn));
         $parts = explode(' ', $sentence);
-        
+
         $method = count($parts) > 1 && in_array(strtoupper($parts[0]), ['GET', 'DELETE'])
             ? strtoupper(array_shift($parts))
             : 'POST';
         $command = join('-', $parts);
-        
+
         return $this->request($method, $command, $args);
     }
 
