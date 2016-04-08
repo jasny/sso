@@ -81,9 +81,9 @@ class Broker
      */
     protected function getSessionId()
     {
-        if (isset($this->token)) return null;
+        if (!isset($this->token)) return null;
 
-        $checksum = hash('sha256', 'session' . $this->token . static::getRemoteAddr() . $this->secret);
+        $checksum = hash('sha256', 'session' . $this->token . $this->secret);
         return "SSO-{$this->broker}-{$this->token}-$checksum";
     }
 
@@ -131,7 +131,7 @@ class Broker
             'command' => 'attach',
             'broker' => $this->broker,
             'token' => $this->token,
-            'checksum' => hash('sha256', 'attach' . $this->token . static::getRemoteAddr() . $this->secret)
+            'checksum' => hash('sha256', 'attach' . $this->token . $this->secret)
         ] + $_GET;
 
         return $this->url . "?" . http_build_query($data + $params);
@@ -286,16 +286,5 @@ class Broker
         $command = join('-', $parts);
 
         return $this->request($method, $command, $args);
-    }
-
-
-    /**
-     * Get the client IP address
-     *
-     * @return string
-     */
-    protected static function getRemoteAddr()
-    {
-        return $_SERVER['REMOTE_ADDR'];
     }
 }
