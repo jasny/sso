@@ -17,12 +17,12 @@
     },
     "require": {
         "php": ">=5.5.0",
-        "desarrolla2/cache": "^2.0",
-        "jasny/validation-result": "^0.1.1"
+        "desarrolla2/cache": "^2.0.0",
+        "jasny/validation-result": "^1.0.0"
     },
     "require-dev": {
-        "codeception/codeception": "^2.1",
-        "jasny/php-code-quality": "^1.1"        
+        "codeception/codeception": "^2.1.0",
+        "jasny/php-code-quality": "^1.1.0"
     },
     "autoload": {
         "psr-4": {
