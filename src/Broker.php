@@ -209,7 +209,14 @@ class Broker
         list($contentType) = explode(';', curl_getinfo($ch, CURLINFO_CONTENT_TYPE));
 
         if ($contentType != 'application/json') {
-            $message = 'Expected application/json response, got ' . $contentType;
+            $pageUrl = preg_replace('/\?.*$/', '', $url);
+            $message = "HTTP request '$method $pageUrl' failed: "
+              . "Expected a application/json response, got $contentType";
+            
+            if ($contentType === 'text/html' && preg_match('<title[^>]+>([^<>]+)</title>', $response, $match)) {
+                $message .= " With"
+            }
+            
             throw new Exception($message);
         }
 
