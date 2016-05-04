@@ -134,4 +134,41 @@ To proof it's working you should setup the server and two or more brokers, each 
 
 Now open some tabs and visit http://localhost:9001, http://localhost:9002 and http://localhost:9003.
 
+For NGINX server config. For more accuracy we can use this config to separate broker, because localhost:9001, localhost:9002, localhost:9003 share same cookie.
+```
+server {
+	listen 80;
+
+	server_name broker1.local;
+	
+	location / {
+		proxy_pass http://localhost:9001;
+		proxy_set_header Host broker1.local;
+	}
+
+}
+server {
+	listen 80;
+
+	server_name broker2.local;
+	
+	location / {
+		proxy_pass http://localhost:9002;
+		proxy_set_header Host broker2.local;
+	}
+
+}
+server {
+	listen 80;
+
+	server_name broker3.local;
+	
+	location / {
+		proxy_pass http://localhost:9003;
+		proxy_set_header Host broker3.local;
+	}
+
+}
+```
+
 _Note that after logging in, you need to refresh on the other brokers to see the effect._
