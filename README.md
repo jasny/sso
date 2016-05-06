@@ -102,7 +102,7 @@ For more information, checkout the `server` example.
 When creating a Jasny\SSO\Broker instance, you need to pass the server url, broker id and broker secret. The broker id
 and secret needs to be registered at the server (so fetched when using `getBrokerInfo($brokerId)`).
 
-**Be careful**: *The broker id and broker secret cannot contain the "-" character.*
+**Be careful**: *The broker id SHOULD be alphanumeric. In any case it MUST NOT contain the "-" character.*
 
 Next you need to call `attach()`. This will generate a token an redirect the client to the server to attach the token
 to the client's session. If the client is already attached, the function will simply return.
