@@ -1,62 +1,121 @@
-### Error
-* at sso server: Meet the error: Invalid request (Malformed HTTP request)
-* Fixed because use same port of debug: 9000
+_This page has been contributed by [tuanphpvn](https://github.com/tuanphpvn)._
 
-### Main point of program:
-* Jasny\SSO\Broker::getSessionid()
+### Errors and Solutions
 
-### Debug
-* You can use debug listening and stop to debug both  client and server
-
-### Flow of broker when get user info
-#### On broker side
-* new Jasny\SSO\Broker('http://localhost:9005', 'Alice', '8iwzik1bwd');
-* attached = true when token is set
-* call attach will generate token and setcookie('sso_token_alice', base_convert(md5(uniqid(rand(), true)), 16, 36), '/');
-* The broker will redirect with 307 url with informations such as:
-    * command: attach
-    * broker = Alice
-    * token = 4cbg6l6nqpkwg4gg04404kwg8
-    * checksum = aed4cd8fce73dca30eb7814cdb82d63506f3d1a6446164ec4bf239c1f884c3cc. = hash('sha256', 'attach' . $this->token . $this->secret)
-    * return_url = http://localhost:9001/
-
-#### On server side
-* The broker will pass the cookie to them
-* ssoServer keep information about brokers:
-    * Alice: secret = 8iwzik1bwd
-* generateAttachChecksum such as:$checksum = hash('sha256', 'attach' . $token . $broker['secret']); 
-* The checksum between server and request to make sure it is valid
-* sessionId = "SSO-{$brokerId}-{$token}-" . hash('sha256', 'session' . $token . $broker['secret']);
-* $sessionId = SSO-Alice-4cbg6l6nqpkwg4gg04404kwg8-c182a0aea63f5dc9285dd65a1b712e9e53ee8b846398bc342b5f82e2516ffe7c
-* we save Cache->set($sessionid, session_id());
-
-#### AFter redirect from server at broker side.
-* we have: sso_token_alice: 4cbg6l6nqpkwg4gg04404kwg8
-* PHPSESSID: 56va1qm1035598lnqb0mra0vl3
-* request urL have sso_session: SSO-Alice-4cbg6l6nqpkwg4gg04404kwg8-c182a0aea63f5dc9285dd65a1b712e9e53ee8b846398bc342b5f82e2516ffe7c
-* it will get data from /tmp/sso_session.php.cache
-
-#### NOw the broker call server again:
-* Brokern send: sso_session = SSO-Alice-4cbg6l6nqpkwg4gg04404kwg8-c182a0aea63f5dc9285dd65a1b712e9e53ee8b846398bc342b5f82e2516ffe7cs
-* $linkedId = $this->cache->get($sid);  $linkedId = 56va1qm1035598lnqb0mra0vl3
-* From the session_sso we parse and we get:
-```PHP
-if (!preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_GET['sso_session'], $matches)) {
-    return $this->fail("Invalid session id");
-}
-
-$brokerId = $matches[1];
-$token = $matches[2];
+* "**Invalid request (Malformed HTTP request)**" error when trying debug sso with xdebug.
+     * Reason: Because if you run sso-server with port 9000 which will conflict with xdebug port .
+     * Solution: There are two way you can resolve it.
+         * The simple way: Change the port of sso-server of examples: 
 ```
-* We check checksum again
-#### When login on another borker site:
-* sid = SSO-Greg-486t4mlh39mos4skogc4kw0go-63c694f80630cc525c281f1ffe2fee3ecfd6ecea4f0bb949482031801b9e08c4
-* But when we use: $this->cache->get. it return 56va1qm1035598lnqb0mra0vl3 same session_id above
-* When we call: $username = $this->getSessionData('sso_user'); it get data from session and we have the username = 'jackie'
- 
-#### The basic of problems
-* The key is session_id($id). All broker will pass some information to server and get the same $id. So it will get the some value out.
-* When user logout because the session with that $id has been deleted so we know the user has been logout
-* When attach call the file /tmp/{{sso_session}}.php.cache will be created and the value of session_id() will be save to that file.
-* We have one time redirect. this redirect is the key. It will create a PHPSESSID between your browser and the server. So From here we have save the session_id and 
-use session_id($thatId).  and return data backto the browser.
+php -S localhost:9090 -t examples/server/
+export SSO_SERVER=http://localhost:9090 SSO_BROKER_ID=Alice SSO_BROKER_SECRET=8iwzik1bwd; php -S localhost:9001 -t examples/broker/
+export SSO_SERVER=http://localhost:9090 SSO_BROKER_ID=Greg SSO_BROKER_SECRET=7pypoox2pc; php -S localhost:9002 -t examples/broker/
+export SSO_SERVER=http://localhost:9090 SSO_BROKER_ID=Julias SSO_BROKER_SECRET=ceda63kmhp; php -S localhost:9003 -t examples/ajax-broker/
+```
+         * The second one: Change the port of xdebug. 
+             * Step 1: Go the the editor which you are using and change the xdebug port from 9000 -> 9090.
+             * Step 2: Change xdebug.remote_port=9090 in php config. For example: /etc/php5/cli/conf.d/20-xdebug.ini.
+             * Step 3: If you want to debug cli add this line to ~/.bashrc:
+```
+export XDEBUG_CONFIG="remote_enable=1 remote_mode=req remote_port=9090 remote_host=127.0.0.1 remote_connect_back=0"
+```
+    * Note: all the config of xdebug must be done before run php -S ...
+     
+     
+### Explain code:
+
+* $broker = new Jasny\SSO\Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET'));
+    * $broker->url = "http://localhost:9005"
+    * $broker->secret = "8iwzik1bwd"
+    * $broker->broker = "Alice"
+    * $broker->token = $_COOKIE[$broker->getCookieName()]
+        * $broker->getCookieName()
+            * = 'sso_token_' . preg_replace('/[_\W]+/', '_', strtolower("**Alice**"))
+* $broker->attach(true);
+    * Two cases:
+        * case 1 - The first time visit broker: 
+            * Force the browser send url to server to attach session between browser and server by using:
+```
+header("Location: $url", true, 307);
+echo "You're redirected to <a href='$url'>$url</a>";
+exit();
+```
+            * Generate cookie **$broker->getCookieName()** for broker domain "http:/localhost:9001"
+            * The $url have info:
+```
+$data = [
+            'command' => 'attach',
+            'broker' => 'Alice',
+            'token' => '5bxhf7qi6hwkw40go4wwwoco8',
+            'checksum' => hash('sha256', 'attach' . '5bxhf7qi6hwkw40go4wwwoco8' . '8iwzik1bwd'),
+            'return_url' => 'http://localhost:9001/login.php'
+        ]
+```
+        * case 2: in the second time:
+            * Do nothing because $_COOKIE[$broker->getCookieName()] has been created.
+* What is happen when browser redirect to server ?:
+    * Check checksum:
+        * Purpose: We need know: "5bxhf7qi6hwkw40go4wwwoco8"(**token**) and "8iwzik1bwd"(**secret**)
+        * At the request we have: token, broker= 'Alice'. Now we need secret
+        * From broker = 'Alice'. we can get 'secret'. Because server of sso save this information.
+    * Save linked session:
+        * Save file have name: "SSO-{$brokerId}-{$token}-" . hash('sha256', 'session' . $token . $broker['secret']).php.cache with content of session_id();
+            * Explain: session_id() is the connect between browser and server. So because in the first time you visit broker it will force the browser redirect to sso server. 
+            So the content of linked session file will have the same.
+    * redirect back to broker:
+        * Depend on type of request the server will action different: such as: redirect, send json or image in case of ajax
+* In case Redirect url:
+    * We will go to login.php
+    * $broker->attach(true); will do nothing because  $_COOKIE['$broker->getCookieName()'] already exists in the first request.
+    * Broker send request to server with the information below:
+```
+command: userInfo
+sso_session : SSO-Alice-5bxhf7qi6hwkw40go4wwwoco8-4f593ea7c2feab231dc3779c09a7f5d1967b7d0a85ce997e22c3f8ff52bcc4ed
+```
+    * At the sso-server:
+        * We get the content of session_id from $linkedId = $this->cache->get($sid); with:
+            * id = SSO-Alice-5bxhf7qi6hwkw40go4wwwoco8-4f593ea7c2feab231dc3779c09a7f5d1967b7d0a85ce997e22c3f8ff52bcc4ed
+            * $linkedId = fc9lerurhboaav16d3pf5ka2o6
+            * $linkedId = session_id() which is result of browser communicate directly with sso-server.
+        * Get session content of browser not session content of broker:
+        
+```
+session_id($linkedId);
+session_start();
+```
+            * Explain:
+                * $linkedId = content of SSO-Alice-5bxhf7qi6hwkw40go4wwwoco8-4f593ea7c2feab231dc3779c09a7f5d1967b7d0a85ce997e22c3f8ff52bcc4ed.php.cache.
+                * $linkedId: is the key to allow many broker share same session.
+* In case of login. Broker will send login command to server
+    * At server side:
+        * $this->startBrokerSession();
+            * Because broker send: sso_session: SSO-Alice-5bxhf7qi6hwkw40go4wwwoco8-4f593ea7c2feab231dc3779c09a7f5d1967b7d0a85ce997e22c3f8ff52bcc4ed
+            * From this sso_session we can get **session_id()** which saved for browser and server.
+            * From that old session_id() has been saved. We init it.
+```
+session_id($id);
+session_start();
+```
+        * $validation = $this->authenticate($_POST['username'], $_POST['password']);
+            * If login sucess we have the user in $_SESSION
+            * If not success authentication we return error.
+* What happen if another broker domain login.
+    * $broker->attach(true);
+        * In the first time:
+            * at broker side. it will create cookie token for that broker.
+            * force browser redirect to server for generate session between server and browser. In this progress we will save the file such as: SSO-Greg-**token**-**hash**  with content "fc9lerurhboaav16d3pf5ka2o6" (same as broker Alice).
+            * init session at server
+```
+session_id(fc9lerurhboaav16d3pf5ka2o6);
+session_start();
+```
+        * In the second time after server force browser call return url this function will do nothing because $_COOKIE[$broker->getCookieName()] has been created.
+    * When get userInfo from server:
+        * Broker will request with sso_session.
+        * From the sso_session we can get the value: fc9lerurhboaav16d3pf5ka2o6
+        * From this value we call:
+```
+session_id(fc9lerurhboaav16d3pf5ka2o6);
+session_start();
+```
+        * Now server know what user request. It will return the information of the user. As you know it. It is user which you login on the first broker.
