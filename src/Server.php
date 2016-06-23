@@ -17,7 +17,7 @@ abstract class Server
     /**
      * @var array
      */
-    protected $options;
+    protected $options = ['files_cache_directory' => '/tmp', 'files_cache_ttl' => 36000];
 
     /**
      * Cache that stores the special session data for the brokers.
@@ -44,7 +44,7 @@ abstract class Server
      */
     public function __construct(array $options = [])
     {
-        $this->options = $options;
+        $this->options = $options + $this->options;
         $this->cache = $this->createCacheAdapter();
     }
 
@@ -55,8 +55,8 @@ abstract class Server
      */
     protected function createCacheAdapter()
     {
-        $adapter = new Adapter\File('/tmp');
-        $adapter->setOption('ttl', 10 * 3600);
+        $adapter = new Adapter\File($this->options['files_cache_directory']);
+        $adapter->setOption('ttl', $this->options['files_cache_ttl']);
 
         return new Cache($adapter);
     }
