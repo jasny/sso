@@ -251,7 +251,7 @@ class Broker
      */
     public function logout()
     {
-        $this->request('POST', 'logout');
+        $this->request('POST', 'logout', 'logout');
     }
 
     /**
