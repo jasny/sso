@@ -68,12 +68,12 @@ abstract class Server
     {
         if (isset($this->brokerId)) return;
 
-		$sid =  $this->getBrokerSessionID();
-		
-        if ($sid == FALSE) {
+       $sid =  $this->getBrokerSessionID();
+
+        if ($sid == false) {
             return $this->fail("Broker didn't send a session key", 400);
         }
-		
+
         $linkedId = $this->cache->get($sid);
 
         if (!$linkedId) {
@@ -90,25 +90,35 @@ abstract class Server
 
         $this->brokerId = $this->validateBrokerSessionId($sid);
     }
-		
-	/**
-	 * Get session ID from header Authorization or from $_GET/$_POST
-	 */
-	protected function getBrokerSessionID(){
-		$headers = getallheaders();
-		
-		if (isset($headers['Authorization'])){
-			return $headers['Authorization'];
-		}
-		if (isset($_GET['sso_session'])) {
-			return $_GET['sso_session'];
-		}
-		if (isset($_POST['sso_session'])) {
-			return $_POST['sso_session'];
-		}
-		
-		return FALSE;
-	}
+
+            /**
+         * Get session ID from header Authorization or from $_GET/$_POST
+         */
+        protected function getBrokerSessionID()
+        {
+            $headers = getallheaders();
+
+            if (isset($headers['Authorization'])){
+               if (strpos($headers['Authorization'], 'Bearer') === 0){
+                    $headers['Authorization'] = substr($headers['Authorization'], 7);
+                }
+                return $headers['Authorization'];
+            }
+            if (isset($_GET['access_token'])) {
+                return $_GET['access_token'];
+            }
+            if (isset($_POST['access_token'])) {
+                return $_POST['access_token'];
+            }
+            if (isset($_GET['sso_session'])) {
+                return $_GET['sso_session'];
+            }
+            if (isset($_POST['sso_session'])) {
+                return $_POST['sso_session'];
+            }
+
+            return false;
+        }
 
     /**
      * Validate the broker session id
