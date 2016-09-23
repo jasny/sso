@@ -68,12 +68,12 @@ abstract class Server
     {
         if (isset($this->brokerId)) return;
 
-        if (!isset($_GET['sso_session'])) {
+		$sid =  $this->getBrokerSessionID();
+		
+        if ($sid == FALSE) {
             return $this->fail("Broker didn't send a session key", 400);
         }
-
-        $sid = $_GET['sso_session'];
-
+		
         $linkedId = $this->cache->get($sid);
 
         if (!$linkedId) {
@@ -90,6 +90,25 @@ abstract class Server
 
         $this->brokerId = $this->validateBrokerSessionId($sid);
     }
+		
+	/**
+	 * Get session ID from header Authorization or from $_GET/$_POST
+	 */
+	protected function getBrokerSessionID(){
+		$headers = getallheaders();
+		
+		if (isset($headers['Authorization'])){
+			return $headers['Authorization'];
+		}
+		if (isset($_GET['sso_session'])) {
+			return $_GET['sso_session'];
+		}
+		if (isset($_POST['sso_session'])) {
+			return $_POST['sso_session'];
+		}
+		
+		return FALSE;
+	}
 
     /**
      * Validate the broker session id
@@ -101,7 +120,7 @@ abstract class Server
     {
         $matches = null;
 
-        if (!preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $_GET['sso_session'], $matches)) {
+        if (!preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $this->getBrokerSessionID(), $matches)) {
             return $this->fail("Invalid session id");
         }
 

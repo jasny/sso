@@ -169,8 +169,6 @@ class Broker
     protected function getRequestUrl($command, $params = [])
     {
         $params['command'] = $command;
-        $params['sso_session'] = $this->getSessionId();
-
         return $this->url . '?' . http_build_query($params);
     }
 
@@ -192,7 +190,7 @@ class Broker
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json', 'Authorization:'. $this->getSessionID()]);
 
         if ($method === 'POST' && !empty($data)) {
             $post = is_string($data) ? $data : http_build_query($data);
