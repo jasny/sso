@@ -68,7 +68,7 @@ abstract class Server
     {
         if (isset($this->brokerId)) return;
 
-       $sid =  $this->getBrokerSessionID();
+        $sid =  $this->getBrokerSessionID();
 
         if ($sid == false) {
             return $this->fail("Broker didn't send a session key", 400);
@@ -98,10 +98,8 @@ abstract class Server
         {
             $headers = getallheaders();
 
-            if (isset($headers['Authorization'])){
-               if (strpos($headers['Authorization'], 'Bearer') === 0){
-                    $headers['Authorization'] = substr($headers['Authorization'], 7);
-                }
+            if (isset($headers['Authorization']) &&  strpos($headers['Authorization'], 'Bearer') === 0) {
+                $headers['Authorization'] = substr($headers['Authorization'], 7);
                 return $headers['Authorization'];
             }
             if (isset($_GET['access_token'])) {
@@ -112,9 +110,6 @@ abstract class Server
             }
             if (isset($_GET['sso_session'])) {
                 return $_GET['sso_session'];
-            }
-            if (isset($_POST['sso_session'])) {
-                return $_POST['sso_session'];
             }
 
             return false;
