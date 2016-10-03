@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/../../vendor/autoload.php';
-
+.idea/copyright/
 $broker = new Jasny\SSO\Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET'));
 $error = $_GET['sso_error'];
 
