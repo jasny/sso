@@ -8,8 +8,8 @@ if (empty($_REQUEST['command']) || !method_exists($broker, $_REQUEST['command'])
     header("Content-Type: application/json");
     header("HTTP/1.1 400 Bad Request");
     echo json_encode(['error' => 'Command not specified']);
-    exit();
-} 
+    return;
+}
 
 try {
     $result = $broker->{$_REQUEST['command']}();
@@ -22,7 +22,7 @@ try {
 if (!empty($_GET['callback'])) {
     if (!isset($result)) $result = null;
     if (!isset($status)) $status = isset($result) ? 200 : 204;
-    
+
     header('Content-Type: application/javascript');
     echo $_GET['callback'] . '(' . json_encode($result) . ', ' . $status . ')';
     return;

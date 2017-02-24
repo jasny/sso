@@ -1,8 +1,6 @@
 <?php
 namespace Jasny\SSO;
 
-use Jasny\ValidationResult;
-
 /**
  * Single sign-on broker.
  *
@@ -42,13 +40,19 @@ class Broker
     protected $userinfo;
 
     /**
+     * Cookie lifetime
+     * @var int
+     */
+    protected $cookie_lifetime;
+
+    /**
      * Class constructor
      *
      * @param string $url    Url of SSO server
      * @param string $broker My identifier, given by SSO provider.
      * @param string $secret My secret word, given by SSO provider.
      */
-    public function __construct($url, $broker, $secret)
+    public function __construct($url, $broker, $secret, $cookie_lifetime = 3600)
     {
         if (!$url) throw new \InvalidArgumentException("SSO server URL not specified");
         if (!$broker) throw new \InvalidArgumentException("SSO broker id not specified");
@@ -57,6 +61,7 @@ class Broker
         $this->url = $url;
         $this->broker = $broker;
         $this->secret = $secret;
+        $this->cookie_lifetime = $cookie_lifetime;
 
         if (isset($_COOKIE[$this->getCookieName()])) $this->token = $_COOKIE[$this->getCookieName()];
     }
@@ -95,7 +100,7 @@ class Broker
         if (isset($this->token)) return;
 
         $this->token = base_convert(md5(uniqid(rand(), true)), 16, 36);
-        setcookie($this->getCookieName(), $this->token, time() + 3600, '/');
+        setcookie($this->getCookieName(), $this->token, time() + $this->cookie_lifetime, '/');
     }
 
     /**
