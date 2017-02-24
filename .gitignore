@@ -9,4 +9,3 @@ tests/_output/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 /tests/_support/_generated/
-.DS_Store
