@@ -1,8 +1,6 @@
 <?php
 namespace Jasny\SSO;
 
-use Jasny\ValidationResult;
-
 /**
  * Single sign-on broker.
  *

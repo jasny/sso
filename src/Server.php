@@ -68,9 +68,9 @@ abstract class Server
     {
         if (isset($this->brokerId)) return;
 
-        $sid =  $this->getBrokerSessionID();
+        $sid = $this->getBrokerSessionID();
 
-        if ($sid == false) {
+        if ($sid === false) {
             return $this->fail("Broker didn't send a session key", 400);
         }
 
