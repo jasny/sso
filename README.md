@@ -135,7 +135,7 @@ On *nix (Linux / Unix / OSX) run:
     export SSO_SERVER=http://localhost:9000 SSO_BROKER_ID=Julias SSO_BROKER_SECRET=ceda63kmhp; php -S localhost:9003 -t examples/ajax-broker/
 
 Now open some tabs and visit http://localhost:9001, http://localhost:9002 and http://localhost:9003.
-usename/password
+username/password
 jackie/jackie123
 john/john123
 
