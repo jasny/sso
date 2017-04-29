@@ -2,7 +2,7 @@
 use Jasny\SSO\NotAttachedException;
 use Jasny\SSO\Exception as SsoException;
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../../../../../vendor/autoload.php';
 
 if (isset($_GET['sso_error'])) {
     header("Location: error.php?sso_error=" . $_GET['sso_error'], true, 307);
