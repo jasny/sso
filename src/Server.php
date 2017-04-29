@@ -88,6 +88,10 @@ abstract class Server
         session_id($linkedId);
         session_start();
 
+        if (empty($_SESSION)) {
+            $this->startUserSession();
+        }
+
         $this->brokerId = $this->validateBrokerSessionId($sid);
     }
 
