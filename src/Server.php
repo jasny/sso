@@ -80,9 +80,8 @@ abstract class Server
             return $this->fail("The broker session id isn't attached to a user session", 403);
         }
 
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            if ($linkedId !== session_id()) throw new \Exception("Session has already started", 400);
-            return;
+        if (session_status() === PHP_SESSION_ACTIVE && $linkedId !== session_id()) {
+            return $this->fail("Session has already started", 400);
         }
 
         session_id($linkedId);
