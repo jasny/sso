@@ -97,7 +97,19 @@ abstract class Server
          */
         protected function getBrokerSessionID()
         {
-            $headers = getallheaders();
+            $headers = ''; 
+            if (!function_exists('getallheaders')) 
+            { 
+                foreach ($_SERVER as $name => $value) 
+                { 
+                    if (substr($name, 0, 5) == 'HTTP_') 
+                    { 
+                        $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value; 
+                    } 
+                } 
+            }else{
+                $headers = getallheaders();
+            }
 
             if (isset($headers['Authorization']) &&  strpos($headers['Authorization'], 'Bearer') === 0) {
                 $headers['Authorization'] = substr($headers['Authorization'], 7);
