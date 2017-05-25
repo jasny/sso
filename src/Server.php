@@ -46,6 +46,7 @@ abstract class Server
     {
         $this->options = $options + $this->options;
         $this->cache = $this->createCacheAdapter();
+        @ini_set('session.name', 'PHPSESSID_SSOSERVER');
     }
 
     /**
