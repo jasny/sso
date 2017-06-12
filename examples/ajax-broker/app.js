@@ -42,7 +42,9 @@
       dataType: 'json'
     });
 
-    req.done(callback);
+    req.done(function( data ) {
+        callback(data);
+    });
     
     req.fail(function(jqxhr) {
       showError(jqxhr.responseJSON || jqxhr.textResponse);
