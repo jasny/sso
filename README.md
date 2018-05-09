@@ -4,7 +4,9 @@ Single Sign-On for PHP (Ajax compatible)
 Jasny\SSO is a relatively simply and straightforward solution for an single sign on (SSO) implementation. With SSO,
 logging into a single website will authenticate you for all affiliate sites.
 
-#### How it works
+**This project has been adopted and will be actively supported by [LegalThings](https://legalthings.io/).**
+
+### How it works
 
 When using SSO, when can distinguish 3 parties:
 
@@ -27,7 +29,7 @@ using the same session. When another broker joins in, it will also use the same 
 
 For a more indepth explanation, please [read this article](https://github.com/jasny/sso/wiki).
 
-#### How is this different from OAuth?
+### How is this different from OAuth?
 
 With OAuth, you can authenticate a user at an external server and get access to their profile info. However you
 aren't sharing a session.
@@ -46,7 +48,7 @@ Install this library through composer
 
 ## Usage
 
-#### Server
+### Server
 
 `Jasny\SSO\Server` is an abstract class. You need to create a your own class which implements the abstract methods.
 These methods are called fetch data from a data souce (like a DB).
@@ -97,7 +99,7 @@ This will make the object throw a Jasny\SSO\Exception, rather than set the HTTP 
 
 For more information, checkout the `server` example.
 
-#### Broker
+### Broker
 
 When creating a Jasny\SSO\Broker instance, you need to pass the server url, broker id and broker secret. The broker id
 and secret needs to be registered at the server (so fetched when using `getBrokerInfo($brokerId)`).
