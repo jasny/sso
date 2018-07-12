@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once 'MySSOServer.php';
+require_once __DIR__ . '/../../src/Polyfill/getallheaders.php';
 
 $ssoServer = new MySSOServer();
 $command = isset($_REQUEST['command']) ? $_REQUEST['command'] : null;

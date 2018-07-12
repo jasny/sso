@@ -4,6 +4,7 @@ namespace Jasny\SSO;
 use Desarrolla2\Cache\Cache;
 use Desarrolla2\Cache\Adapter;
 
+require_once __DIR__ . '/../src/Polyfill/getallheaders.php';
 /**
  * Single sign-on server.
  *
@@ -309,6 +310,7 @@ abstract class Server
 
         header('Content-type: application/json; charset=UTF-8');
         echo json_encode($user);
+        exit();
     }
 
 
