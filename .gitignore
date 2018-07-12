@@ -2,6 +2,7 @@
 nbproject
 /vendor
 composer.lock
+/.idea
 
 tests/_output/*
 # Elastic Beanstalk Files
