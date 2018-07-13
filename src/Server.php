@@ -245,7 +245,6 @@ abstract class Server
         if ($this->returnType === 'redirect') {
             $url = $_REQUEST['return_url'];
             header("Location: $url", true, 307);
-            echo "You're being redirected to <a href='{$url}'>$url</a>";
         }
     }
 
@@ -365,7 +364,6 @@ abstract class Server
         if ($this->returnType === 'redirect') {
             $url = $_REQUEST['return_url'] . '?sso_error=' . $message;
             header("Location: $url", true, 307);
-            echo "You're being redirected to <a href='{$url}'>$url</a>";
             exit();
         }
 

@@ -160,7 +160,6 @@ class Broker
         $url = $this->getAttachUrl($params);
 
         header("Location: $url", true, 307);
-        echo "You're redirected to <a href='$url'>$url</a>";
         exit();
     }
 
