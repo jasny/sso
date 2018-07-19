@@ -7,7 +7,7 @@ namespace Jasny\SSO;
  * The broker lives on the website visited by the user. The broken doesn't have any user credentials stored. Instead it
  * will talk to the SSO server in name of the user, verifying credentials and getting user information.
  */
-class Broker
+class Broker implements BrokerInterface
 {
     /**
      * Url of SSO server
@@ -93,7 +93,7 @@ class Broker
     }
 
     /**
-     * Generate session token
+     * {@inheritdoc}
      */
     public function generateToken()
     {
@@ -104,7 +104,7 @@ class Broker
     }
 
     /**
-     * Clears session token
+     * {@inheritdoc}
      */
     public function clearToken()
     {
@@ -113,9 +113,7 @@ class Broker
     }
 
     /**
-     * Check if we have an SSO token.
-     *
-     * @return boolean
+     * {@inheritdoc}
      */
     public function isAttached()
     {
@@ -123,10 +121,7 @@ class Broker
     }
 
     /**
-     * Get URL to attach session at SSO server.
-     *
-     * @param array $params
-     * @return string
+     *{@inheritdoc}
      */
     public function getAttachUrl($params = [])
     {
@@ -143,9 +138,7 @@ class Broker
     }
 
     /**
-     * Attach our session to the user's session on the SSO server.
-     *
-     * @param string|true $returnUrl  The URL the client should be returned to after attaching
+     *{@inheritdoc}
      */
     public function attach($returnUrl = null)
     {
@@ -249,7 +242,7 @@ class Broker
     }
 
     /**
-     * Logout at sso server.
+     *{@inheritdoc}
      */
     public function logout()
     {
@@ -257,9 +250,7 @@ class Broker
     }
 
     /**
-     * Get user information.
-     *
-     * @return object|null
+     *{@inheritdoc}
      */
     public function getUserInfo()
     {
@@ -288,5 +279,13 @@ class Broker
         $command = join('-', $parts);
 
         return $this->request($method, $command, $args);
+    }
+
+    /**
+     *{@inheritdoc}
+     */
+    public function getUrl()
+    {
+        return $this->url;
     }
 }
