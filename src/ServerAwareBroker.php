@@ -72,6 +72,10 @@ class ServerAwareBroker implements BrokerInterface
      */
     public function attach($returnUrl = null)
     {
+        if ($this->broker->isAttached()) {
+            return;
+        }
+
         //check if the server is alive
         $request = $this->client->createRequest('GET', $this->healthCheckUrl);
         $this->client->send($request);
