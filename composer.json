@@ -18,7 +18,8 @@
     "require": {
         "php": ">=5.5.0",
         "desarrolla2/cache": "^2.0.0",
-        "jasny/validation-result": "^1.0.0"
+        "jasny/validation-result": "^1.0.0",
+        "guzzlehttp/guzzle": "^6.3"
     },
     "require-dev": {
         "codeception/codeception": "^2.1.0",
@@ -30,4 +31,3 @@
         }
     }
 }
-
