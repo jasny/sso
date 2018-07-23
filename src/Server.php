@@ -221,7 +221,6 @@ abstract class Server
 
         $this->cache->set($sid, $this->getSessionData('id'));
         $this->outputAttachSuccess();
-        exit();
     }
 
     /**
