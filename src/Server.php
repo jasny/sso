@@ -103,7 +103,6 @@ abstract class Server
                         $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
                     }
                 }
-                return $headers;
             } else {
                 $headers = getallheaders();
             }
