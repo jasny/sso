@@ -140,7 +140,7 @@ class Broker implements BrokerInterface
     /**
      *{@inheritdoc}
      */
-    public function attach($returnUrl = null)
+    public function attach($returnUrl)
     {
         if ($this->isAttached()) return;
 

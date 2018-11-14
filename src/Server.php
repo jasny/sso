@@ -72,17 +72,19 @@ abstract class Server
         $sid = $this->getBrokerSessionID();
 
         if ($sid === false) {
-            return $this->fail("Broker didn't send a session key", 400);
+            throw new \Exception("Broker didn't send a session key", 400);
         }
 
         $linkedId = $this->cache->get($sid);
 
         if (!$linkedId) {
-            return $this->fail("The broker session id isn't attached to a user session", 403);
+            throw new \Exception("The broker session id isn't attached to a user session", 403);
         }
 
         if (session_status() === PHP_SESSION_ACTIVE) {
-            if ($linkedId !== session_id()) throw new \Exception("Session has already started", 400);
+            if ($linkedId !== session_id()) {
+                throw new \Exception("Session has already started", 400);
+            }
             return;
         }
 
@@ -127,14 +129,14 @@ abstract class Server
         $matches = null;
 
         if (!preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $this->getBrokerSessionID(), $matches)) {
-            return $this->fail("Invalid session id");
+            throw new \Exception("Invalid session id");
         }
 
         $brokerId = $matches[1];
         $token = $matches[2];
 
         if ($this->generateSessionId($brokerId, $token) != $sid) {
-            return $this->fail("Checksum failed: Client IP address may have changed", 403);
+            throw new \Exception("Checksum failed: Client IP address may have changed", 403);
         }
 
         return $brokerId;
@@ -187,15 +189,11 @@ abstract class Server
      */
     protected function detectReturnType()
     {
-        if (!empty($_GET['return_url'])) {
-            $this->returnType = 'redirect';
-        } elseif (!empty($_GET['callback'])) {
-            $this->returnType = 'jsonp';
-        } elseif (strpos($_SERVER['HTTP_ACCEPT'], 'image/') !== false) {
-            $this->returnType = 'image';
-        } elseif (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
-            $this->returnType = 'json';
+        if (true === empty($_GET['return_url'])) {
+            throw new \Exception('Return url cannot be empty');
         }
+
+        $this->returnType = 'redirect';
     }
 
     /**
@@ -205,15 +203,18 @@ abstract class Server
     {
         $this->detectReturnType();
 
-        if (empty($_REQUEST['broker'])) return $this->fail("No broker specified", 400);
-        if (empty($_REQUEST['token'])) return $this->fail("No token specified", 400);
+        if (empty($_REQUEST['broker'])) {
+            throw new \Exception("No broker specified", 400);
+        }
 
-        if (!$this->returnType) return $this->fail("No return url specified", 400);
+        if (empty($_REQUEST['token'])) {
+            throw new \Exception("No token specified", 400);
+        }
 
         $checksum = $this->generateAttachChecksum($_REQUEST['broker'], $_REQUEST['token']);
 
         if (empty($_REQUEST['checksum']) || $checksum != $_REQUEST['checksum']) {
-            return $this->fail("Invalid checksum", 400);
+            throw new \Exception("Invalid checksum", 400);
         }
 
         $this->startUserSession();
@@ -228,24 +229,8 @@ abstract class Server
      */
     protected function outputAttachSuccess()
     {
-        if ($this->returnType === 'image') {
-            $this->outputImage();
-        }
-
-        if ($this->returnType === 'json') {
-            header('Content-type: application/json; charset=UTF-8');
-            echo json_encode(['success' => 'attached']);
-        }
-
-        if ($this->returnType === 'jsonp') {
-            $data = json_encode(['success' => 'attached']);
-            echo $_REQUEST['callback'] . "($data, 200);";
-        }
-
-        if ($this->returnType === 'redirect') {
-            $url = $_REQUEST['return_url'];
-            header("Location: $url", true, 307);
-        }
+        $url = $_REQUEST['return_url'];
+        header("Location: $url", true, 307);
     }
 
     /**
@@ -267,17 +252,22 @@ abstract class Server
     {
         $this->startBrokerSession();
 
-        if (empty($_POST['username'])) $this->fail("No username specified", 400);
-        if (empty($_POST['password'])) $this->fail("No password specified", 400);
+        if (empty($_POST['username'])) {
+            throw new \Exception("No username specified", 400);
+        }
+
+        if (empty($_POST['password'])) {
+            throw new \Exception("No password specified", 400);
+        }
 
         $validation = $this->authenticate($_POST['username'], $_POST['password']);
 
         if ($validation->failed()) {
-            return $this->fail($validation->getError(), 400);
+            throw new \Exception($validation->getError(), 400);
         }
 
         $this->setSessionData('sso_user', $_POST['username']);
-        $this->userInfo();
+        return $this->userInfo();
     }
 
     /**
@@ -288,8 +278,7 @@ abstract class Server
         $this->startBrokerSession();
         $this->setSessionData('sso_user', null);
 
-        header('Content-type: application/json; charset=UTF-8');
-        http_response_code(204);
+        return ['data' => '', 'status' => 204];
     }
 
     /**
@@ -304,12 +293,10 @@ abstract class Server
 
         if ($username) {
             $user = $this->getUserInfo($username);
-            if (!$user) return $this->fail("User not found", 500); // Shouldn't happen
+            if (!$user) throw new \Exception("User not found", 500); // Shouldn't happen
         }
 
-        header('Content-type: application/json; charset=UTF-8');
-        echo json_encode($user);
-        exit();
+        return ['data' => $user, 'status' => 200];
     }
 
 
@@ -340,40 +327,6 @@ abstract class Server
 
         return isset($_SESSION[$key]) ? $_SESSION[$key] : null;
     }
-
-
-    /**
-     * An error occured.
-     *
-     * @param string $message
-     * @param int    $http_status
-     */
-    protected function fail($message, $http_status = 500)
-    {
-        if (!empty($this->options['fail_exception'])) {
-            throw new Exception($message, $http_status);
-        }
-
-        if ($http_status === 500) trigger_error($message, E_USER_WARNING);
-
-        if ($this->returnType === 'jsonp') {
-            echo $_REQUEST['callback'] . "(" . json_encode(['error' => $message]) . ", $http_status);";
-            exit();
-        }
-
-        if ($this->returnType === 'redirect') {
-            $url = $_REQUEST['return_url'] . '?sso_error=' . $message;
-            header("Location: $url", true, 307);
-            exit();
-        }
-
-        http_response_code($http_status);
-        header('Content-type: application/json; charset=UTF-8');
-
-        echo json_encode(['error' => $message]);
-        exit();
-    }
-
 
     /**
      * Authenticate using user credentials

@@ -35,7 +35,7 @@ interface BrokerInterface
      *
      * @param string|true $returnUrl  The URL the client should be returned to after attaching
      */
-    public function attach($returnUrl = null);
+    public function attach($returnUrl);
 
     /**
      * Log the client in at the SSO server.
