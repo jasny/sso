@@ -129,7 +129,7 @@ abstract class Server
         $matches = null;
 
         if (!preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $this->getBrokerSessionID(), $matches)) {
-            throw new \Exception("Invalid session id");
+            throw new \Exception("Invalid session id", 400);
         }
 
         $brokerId = $matches[1];
@@ -190,7 +190,7 @@ abstract class Server
     protected function detectReturnType()
     {
         if (true === empty($_GET['return_url'])) {
-            throw new \Exception('Return url cannot be empty');
+            throw new \Exception('Return url cannot be empty', 400);
         }
 
         $this->returnType = 'redirect';
@@ -232,18 +232,6 @@ abstract class Server
         $url = $_REQUEST['return_url'];
         header("Location: $url", true, 307);
     }
-
-    /**
-     * Output a 1x1px transparent image
-     */
-    protected function outputImage()
-    {
-        header('Content-Type: image/png');
-        echo base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQ'
-            . 'MAAAAl21bKAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZg'
-            . 'AAAApJREFUCNdjYAAAAAIAAeIhvDMAAAAASUVORK5CYII=');
-    }
-
 
     /**
      * Authenticate
