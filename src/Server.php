@@ -189,11 +189,12 @@ abstract class Server
      */
     protected function detectReturnType()
     {
-        if (true === empty($_GET['return_url'])) {
-            throw new \Exception('Return url cannot be empty', 400);
+        if (array_key_exists('return_url', $_GET) && false === empty($_GET['return_url'])) {
+            $this->returnType = 'redirect';
+        } else {
+            $this->returnType = 'json';
         }
 
-        $this->returnType = 'redirect';
     }
 
     /**
@@ -229,8 +230,17 @@ abstract class Server
      */
     protected function outputAttachSuccess()
     {
-        $url = $_REQUEST['return_url'];
-        header("Location: $url", true, 307);
+        if ($this->returnType === 'json') {
+            header('Content-type: application/json; charset=UTF-8');
+            echo json_encode(['success' => 'attached']);
+            exit;
+        }
+
+        if ($this->returnType === 'redirect') {
+            $url = $_REQUEST['return_url'];
+            header("Location: $url", true, 307);
+            exit;
+        }
     }
 
     /**
