@@ -239,7 +239,6 @@ abstract class Server
         if ($this->returnType === 'redirect') {
             $url = $_REQUEST['return_url'];
             header("Location: $url", true, 307);
-            exit;
         }
     }
 
