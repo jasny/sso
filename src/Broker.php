@@ -203,7 +203,7 @@ class Broker implements BrokerInterface
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         list($contentType) = explode(';', curl_getinfo($ch, CURLINFO_CONTENT_TYPE));
 
-        if ($contentType != 'application/json' && $httpCode !== 204) {
+        if ($contentType != 'application/json') {
             $message = 'Expected application/json response, got ' . $contentType;
             throw new Exception($message);
         }
