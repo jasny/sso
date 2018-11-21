@@ -275,7 +275,7 @@ abstract class Server
         $this->startBrokerSession();
         $this->setSessionData('sso_user', null);
 
-        return ['data' => '', 'status' => 204];
+        return ['data' => null, 'status' => 200];
     }
 
     /**
