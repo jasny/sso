@@ -46,13 +46,21 @@ class Broker implements BrokerInterface
     protected $cookie_lifetime;
 
     /**
+     * Domain of the cookie
+     * @var string
+     */
+    private $domain;
+
+    /**
      * Class constructor
      *
-     * @param string $url    Url of SSO server
-     * @param string $broker My identifier, given by SSO provider.
-     * @param string $secret My secret word, given by SSO provider.
+     * @param string $url             Url of SSO server
+     * @param string $broker          My identifier, given by SSO provider.
+     * @param string $secret          My secret word, given by SSO provider.
+     * @param int    $cookie_lifetime Lifetime of sso_token cookie
+     * @param string $domain          Domain of sso_token cookie
      */
-    public function __construct($url, $broker, $secret, $cookie_lifetime = 3600)
+    public function __construct($url, $broker, $secret, $cookie_lifetime = 3600, $domain = '')
     {
         if (!$url) throw new \InvalidArgumentException("SSO server URL not specified");
         if (!$broker) throw new \InvalidArgumentException("SSO broker id not specified");
@@ -62,6 +70,7 @@ class Broker implements BrokerInterface
         $this->broker = $broker;
         $this->secret = $secret;
         $this->cookie_lifetime = $cookie_lifetime;
+        $this->domain = $domain;
 
         if (isset($_COOKIE[$this->getCookieName()])) $this->token = $_COOKIE[$this->getCookieName()];
     }
@@ -100,7 +109,7 @@ class Broker implements BrokerInterface
         if (isset($this->token)) return;
 
         $this->token = base_convert(md5(uniqid(rand(), true)), 16, 36);
-        setcookie($this->getCookieName(), $this->token, time() + $this->cookie_lifetime, '/');
+        setcookie($this->getCookieName(), $this->token, time() + $this->cookie_lifetime, '/', $this->domain);
     }
 
     /**
@@ -108,7 +117,7 @@ class Broker implements BrokerInterface
      */
     public function clearToken()
     {
-        setcookie($this->getCookieName(), null, 1, '/');
+        setcookie($this->getCookieName(), null, 1, '/', $this->domain);
         $this->token = null;
     }
 
