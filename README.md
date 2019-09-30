@@ -4,8 +4,6 @@ Single Sign-On for PHP (Ajax compatible)
 Jasny\SSO is a relatively simply and straightforward solution for an single sign on (SSO) implementation. With SSO,
 logging into a single website will authenticate you for all affiliate sites.
 
-**This project has been adopted and will be actively supported by [LegalThings](https://legalthings.io/).**
-
 ### How it works
 
 When using SSO, when can distinguish 3 parties:
