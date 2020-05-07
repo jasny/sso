@@ -179,13 +179,13 @@ abstract class Server
      * @param string $token
      * @return string
      */
-    protected function generateAttachChecksum($brokerId, $token)
+    protected function generateChecksum($command, $brokerId, $token)
     {
         $broker = $this->getBrokerInfo($brokerId);
 
         if (!isset($broker)) return null;
 
-        return hash('sha256', 'attach' . $token . $broker['secret']);
+        return hash('sha256', $command . $token . $broker['secret']);
     }
 
 
@@ -207,6 +207,26 @@ abstract class Server
     }
 
     /**
+     * Initialize a user session and redirect back
+     */
+    public function initializeSession()
+    {
+        if (empty($_REQUEST['redirect'])) return $this->fail("No redirect specified", 400);
+        if (empty($_REQUEST['broker'])) return $this->fail("No broker specified", 400);
+
+        $checksum = $this->generateChecksum('initializeSession', $_REQUEST['broker'], $_REQUEST['redirect']);
+
+        if (empty($_REQUEST['checksum']) || $checksum != $_REQUEST['checksum']) {
+            return $this->fail("Invalid checksum", 400);
+        }
+
+        $this->startUserSession();
+
+        echo "<html><head><title>One moment please ...</title><meta http-equiv=\"refresh\" content=\"0;url=" . $_REQUEST['redirect'] . "\" /></head></html>";
+        exit;
+    }
+
+    /**
      * Attach a user session to a broker session
      */
     public function attach()
@@ -218,7 +238,7 @@ abstract class Server
 
         if (!$this->returnType) return $this->fail("No return url specified", 400);
 
-        $checksum = $this->generateAttachChecksum($_REQUEST['broker'], $_REQUEST['token']);
+        $checksum = $this->generateChecksum('attach', $_REQUEST['broker'], $_REQUEST['token']);
 
         if (empty($_REQUEST['checksum']) || $checksum != $_REQUEST['checksum']) {
             return $this->fail("Invalid checksum", 400);
