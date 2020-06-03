@@ -379,7 +379,10 @@ abstract class Server
     protected function fail($message, $http_status = 500)
     {
         if (!empty($this->options['fail_exception'])) {
-            throw new Exception($message, $http_status);
+            header('Content-type: application/json; charset=UTF-8');
+            http_response_code($http_status);
+            echo json_encode(['error' => $message]);
+            exit();
         }
 
         if ($http_status === 500) trigger_error($message, E_USER_WARNING);
