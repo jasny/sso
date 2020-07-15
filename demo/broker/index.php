@@ -1,6 +1,6 @@
 <?php
 use Jasny\SSO\NotAttachedException;
-use Jasny\SSO\Exception as SsoException;
+use Jasny\SSO\BrokerException as SsoException;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 

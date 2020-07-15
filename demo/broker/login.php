@@ -17,7 +17,7 @@ try {
 } catch (NotAttachedException $e) {
     header('Location: ' . $_SERVER['REQUEST_URI']);
     exit;
-} catch (Jasny\SSO\Exception $e) {
+} catch (Jasny\SSO\BrokerException $e) {
     $errmsg = $e->getMessage();
 }
 

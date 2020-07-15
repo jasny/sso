@@ -16,13 +16,15 @@
         "source": "https://github.com/jasny/sso"
     },
     "require": {
-        "php": ">=5.5.0",
-        "desarrolla2/cache": "^2.0.0",
-        "jasny/validation-result": "^1.0.0"
+        "php": ">=7.4.0",
+        "ext-json": "*",
+        "psr/simple-cache": "^1.0",
+        "jasny/immutable": "^2.1"
     },
     "require-dev": {
-        "codeception/codeception": "^2.1.0",
-        "jasny/php-code-quality": "^1.1.0"
+        "codeception/codeception": "^4.0",
+        "jasny/php-code-quality": "^2.6.0",
+        "desarrolla2/cache": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -30,4 +32,3 @@
         }
     }
 }
-

@@ -1,5 +1,8 @@
 <?php
-namespace Jasny\SSO;
+
+declare(strict_types=1);
+
+namespace Jasny\SSO\Broker;
 
 /**
  * Single sign-on broker.
@@ -37,33 +40,28 @@ class Broker
      * User info recieved from the server.
      * @var array
      */
-    protected $userinfo;
+    protected array $userinfo;
 
     /**
      * Cookie lifetime
      * @var int
      */
-    protected $cookie_lifetime;
+    protected int $cookieTtl;
 
     /**
      * Class constructor
      *
-     * @param string $url    Url of SSO server
-     * @param string $broker My identifier, given by SSO provider.
-     * @param string $secret My secret word, given by SSO provider.
+     * @param string $url        Url of SSO server
+     * @param string $broker     My identifier, given by SSO provider.
+     * @param string $secret     My secret word, given by SSO provider.
+     * @param int    $cookieTtl  Cookie lifetime in seconds
      */
-    public function __construct($url, $broker, $secret, $cookie_lifetime = 3600)
+    public function __construct($url, $broker, $secret, $cookieTtl = 3600)
     {
-        if (!$url) throw new \InvalidArgumentException("SSO server URL not specified");
-        if (!$broker) throw new \InvalidArgumentException("SSO broker id not specified");
-        if (!$secret) throw new \InvalidArgumentException("SSO broker secret not specified");
-
         $this->url = $url;
         $this->broker = $broker;
         $this->secret = $secret;
-        $this->cookie_lifetime = $cookie_lifetime;
-
-        if (isset($_COOKIE[$this->getCookieName()])) $this->token = $_COOKIE[$this->getCookieName()];
+        $this->cookieTtl = $cookieTtl;
     }
 
     /**
@@ -133,13 +131,12 @@ class Broker
         $this->generateToken();
 
         $data = [
-            'command' => 'attach',
             'broker' => $this->broker,
             'token' => $this->token,
             'checksum' => hash('sha256', 'attach' . $this->token . $this->secret)
         ] + $_GET;
 
-        return $this->url . "?" . http_build_query($data + $params);
+        return $this->url . "/attach.php?" . http_build_query($data + $params);
     }
 
     /**
@@ -173,8 +170,7 @@ class Broker
      */
     protected function getRequestUrl($command, $params = [])
     {
-        $params['command'] = $command;
-        return $this->url . '?' . http_build_query($params);
+        return $this->url . '/api/' . $command . '.php?' . http_build_query($params);
     }
 
     /**
@@ -205,7 +201,7 @@ class Broker
         $response = curl_exec($ch);
         if (curl_errno($ch) != 0) {
             $message = 'Server request failed: ' . curl_error($ch);
-            throw new Exception($message);
+            throw new BrokerException($message);
         }
 
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -213,7 +209,7 @@ class Broker
 
         if ($contentType != 'application/json') {
             $message = 'Expected application/json response, got ' . $contentType;
-            throw new Exception($message);
+            throw new BrokerException($message);
         }
 
         $data = json_decode($response, true);
@@ -221,7 +217,7 @@ class Broker
             $this->clearToken();
             throw new NotAttachedException($data['error'] ?: $response, $httpCode);
         }
-        if ($httpCode >= 400) throw new Exception($data['error'] ?: $response, $httpCode);
+        if ($httpCode >= 400) throw new BrokerException($data['error'] ?: $response, $httpCode);
 
         return $data;
     }
@@ -236,7 +232,7 @@ class Broker
      * @param string $username
      * @param string $password
      * @return array  user info
-     * @throws Exception if login fails eg due to incorrect credentials
+     * @throws BrokerException if login fails eg due to incorrect credentials
      */
     public function login($username = null, $password = null)
     {
@@ -254,7 +250,7 @@ class Broker
      */
     public function logout()
     {
-        $this->request('POST', 'logout', 'logout');
+        $this->request('POST', 'logout');
     }
 
     /**
@@ -265,7 +261,7 @@ class Broker
     public function getUserInfo()
     {
         if (!isset($this->userinfo)) {
-            $this->userinfo = $this->request('GET', 'userInfo');
+            $this->userinfo = $this->request('GET', 'info');
         }
 
         return $this->userinfo;

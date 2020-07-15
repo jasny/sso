@@ -1,0 +1,7 @@
+parameters:
+    level: 7
+    paths:
+        - src
+    reportUnmatchedIgnoredErrors: false
+includes:
+  	- vendor/phpstan/phpstan-strict-rules/rules.neon

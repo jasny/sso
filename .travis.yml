@@ -1,0 +1,44 @@
+language: php
+
+php:
+  - 7.2
+  - 7.3
+  - 7.4
+  - nightly
+
+matrix:
+  allow_failures:
+    - php: nightly
+
+sudo: false
+
+cache:
+  directories:
+    - $HOME/.composer/cache/files
+
+branches:
+  only:
+    - master
+    - travis
+
+before_install:
+  - test "$TRAVIS_PHP_VERSION" != "nightly" || export COMPOSER_FLAGS="$COMPOSER_FLAGS --ignore-platform-reqs"
+
+install:
+  - composer install --prefer-source $COMPOSER_FLAGS
+  - wget https://scrutinizer-ci.com/ocular.phar -O "$HOME/ocular.phar"
+
+before_script: |
+  if (php -m | grep -q -i xdebug); then
+    export PHPUNIT_FLAGS="--coverage-clover cache/logs/clover.xml"
+  else
+    export PHPUNIT_FLAGS="--no-coverage"
+  fi
+
+script:
+  - vendor/bin/phpunit $PHPUNIT_FLAGS
+
+after_script:
+  - test "$PHPUNIT_FLAGS" == "--no-coverage" || vendor/bin/infection --only-covered --no-progress --no-interaction --threads=4
+  - test "$PHPUNIT_FLAGS" == "--no-coverage" || php "$HOME/ocular.phar" code-coverage:upload --format=php-clover cache/logs/clover.xml
+
