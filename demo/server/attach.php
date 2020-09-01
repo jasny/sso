@@ -6,19 +6,21 @@
 
 declare(strict_types=1);
 
+use Jasny\SSO\Server\Server;
+use Desarrolla2\Cache\File as FileCache;
+use Jasny\SSO\Server\ExceptionInterface as SSOException;
+
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Jasny\SSO\Server\Server;
-use Jasny\SSO\Server\ExceptionInterface as SSOException;
-use Desarrolla2\Cache\File as FileCache;
-
 // Config contains the secret keys of the brokers for this demo.
-$config = require 'config.php';
+$config = require __DIR__ . '/include/config.php';
 
 // Instantiate the SSO server.
 $ssoServer = new Server(
-    fn($id) => $config['brokers'][$id] ?? null,  // Callback to get the broker secret. You might fetch this from DB.
-    new FileCache(),                             // Any PSR-16 compatible cache
+    function (string $id) use ($config) {
+        return $config['brokers'][$id] ?? null;  // Callback to get the broker secret. You might fetch this from DB.
+    },
+    new FileCache(sys_get_temp_dir())            // Any PSR-16 compatible cache
 );
 
 try {
@@ -32,12 +34,20 @@ try {
     exit();
 }
 
-// ------
-
 // The token is attached; output 'success'.
+
 // In this demo we support multiple types of attaching the session. If you choose to support only one method,
 // you don't need to detect the return type.
-switch (detect_return_type()) {
+
+$returnType =
+    (isset($_GET['return_url']) ? 'redirect' : null) ??
+    (isset($_GET['callback']) ? 'jsonp' : null) ??
+    (strpos($_SERVER['HTTP_ACCEPT'], 'text/html') !== false ? 'html' : null) ??
+    (strpos($_SERVER['HTTP_ACCEPT'], 'image/') !== false ? 'image' : null) ??
+    (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false ? 'json' : null) ??
+    (isset($_GET['HTTP_REFERER']) ? 'redirect' : null);
+
+switch ($returnType) {
     case 'json':
         header('Content-type: application/json');
         echo json_encode(['success' => 'attached']);
@@ -58,7 +68,7 @@ switch (detect_return_type()) {
 
     case 'redirect':
         $url = $_GET['return_url'] ?? $_SERVER['HTTP_REFERER'];
-        header('Location: ' . $url);
+        header('Location: ' . $url, true, 303);
         echo "You're being redirected to <a href='{$url}'>$url</a>";
         break;
 
@@ -67,32 +77,4 @@ switch (detect_return_type()) {
         header('Content-Type: text/plain');
         echo "Unable to detect return type";
         break;
-}
-
-/**
- * Detect the type for the HTTP response.
- */
-function detect_return_type(): ?string
-{
-    if (isset($_GET['return_url'])) {
-        return 'redirect';
-    }
-
-    if (isset($_GET['callback'])) {
-        return 'jsonp';
-    }
-
-    if (strpos($_SERVER['HTTP_ACCEPT'], 'image/') !== false) {
-        return 'image';
-    }
-
-    if (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
-        return 'json';
-    }
-
-    if (isset($_GET['HTTP_REFERER'])) {
-        return 'redirect';
-    }
-
-    return null;
 }

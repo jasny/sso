@@ -1,64 +1,81 @@
 <?php
-use Jasny\SSO\NotAttachedException;
+
+declare(strict_types=1);
+
+use Jasny\SSO\Broker\Broker;
+
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/include/functions.php';
 
-$broker = new Jasny\SSO\Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET'));
-$broker->attach(true);
+// Configure the broker.
+$broker = new Broker(
+    getenv('SSO_SERVER'),
+    getenv('SSO_BROKER_ID'),
+    getenv('SSO_BROKER_SECRET')
+);
 
-try {
-    if (!empty($_GET['logout'])) {
-        $broker->logout();
-    } elseif ($broker->getUserInfo() || ($_SERVER['REQUEST_METHOD'] == 'POST' && $broker->login($_POST['username'], $_POST['password']))) {
-        header("Location: index.php", true, 303);
-        exit;
-    }
+// Attach through redirect if the client isn't attached yet.
+if (!$broker->isAttached()) {
+    $returnUrl = (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+    $attachUrl = $broker->getAttachUrl(['return_url' => $returnUrl]);
 
-    if ($_SERVER['REQUEST_METHOD'] == 'POST') $errmsg = "Login failed";
-} catch (NotAttachedException $e) {
-    header('Location: ' . $_SERVER['REQUEST_URI']);
-    exit;
-} catch (Jasny\SSO\BrokerException $e) {
-    $errmsg = $e->getMessage();
+    redirect($attachUrl);
+    exit();
 }
 
+// Handle POST request
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        $credentials = [
+            'username' => $_POST['username'],
+            'password' => $_POST['password']
+        ];
+
+        $broker->request('POST', '/api/login.php', $credentials);
+
+        redirect('index.php');
+        exit();
+    } catch (\RuntimeException $exception) {
+        $error = $exception->getMessage();
+    }
+}
+
+// Show the form in case of GET request
 ?>
 <!doctype html>
 <html>
     <head>
-        <title><?= $broker->broker ?> | Login (Single Sign-On demo)</title>
-        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+        <title><?= $broker->getBrokerId() ?> | Login (Single Sign-On demo)</title>
+
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
 
         <style>
-            h1 {
-                margin-bottom: 30px;
+            .error {
+                background: #fff3f3;
+                border-left: 0.3rem solid #d00000;
+                padding: 5px 5px 5px 10px;
+                margin-bottom: 20px;
             }
         </style>
     </head>
     <body>
         <div class="container">
-            <h1><?= $broker->broker ?> <small>(Single Sign-On demo)</small></h1>
+            <h1><?= $broker->getBrokerId() ?> <small>(Single Sign-On demo)</small></h1>
 
-            <?php if (isset($errmsg)): ?><div class="alert alert-danger"><?= $errmsg ?></div><?php endif; ?>
+            <?php if (isset($error)) : ?>
+                <div class="error"><?= $error ?></div>
+            <?php endif; ?>
 
-            <form class="form-horizontal" action="login.php" method="post">
-                <div class="form-group">
-                    <label for="inputUsername" class="col-sm-2 control-label">Username</label>
-                    <div class="col-sm-10">
-                        <input type="text" name="username" class="form-control" id="inputUsername">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="inputPassword" class="col-sm-2 control-label">Password</label>
-                    <div class="col-sm-10">
-                        <input type="password" name="password" class="form-control" id="inputPassword">
-                    </div>
-                </div>
+            <form action="login.php" method="post">
+                <label for="inputUsername">Username</label>
+                <input type="text" name="username" id="inputUsername">
 
-                <div class="form-group">
-                    <div class="col-sm-offset-2 col-sm-10">
-                        <button type="submit" class="btn btn-default">Login</button>
-                    </div>
-                </div>
+                <label for="inputPassword">Password</label>
+                <input type="password" name="password" id="inputPassword">
+
+                <button type="submit">Login</button>
             </form>
         </div>
     </body>

@@ -9,8 +9,11 @@ namespace Jasny\SSO\Server;
  */
 class GlobalSession implements SessionInterface
 {
-    /** Options passed to session_start(). */
-    protected array $options;
+    /**
+     * Options passed to session_start().
+     * @var array
+     */
+    protected $options;
 
     /**
      * Class constructor.
@@ -35,11 +38,15 @@ class GlobalSession implements SessionInterface
      */
     public function start(?string $id = null): void
     {
-        $started = ($id === null || (bool)session_id($id))
-            && session_start($this->options);
+        if ($id !== null) {
+            session_id($id);
+        }
+
+        $started = session_start($this->options);
 
         if (!$started) {
-            throw new ServerException(error_get_last()['message'], 500);
+            $err = error_get_last() ?? ['message' => 'Failed to start session'];
+            throw new ServerException($err['message'], 500);
         }
     }
 

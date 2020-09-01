@@ -1,45 +1,59 @@
 <?php
-use Jasny\SSO\NotAttachedException;
-use Jasny\SSO\BrokerException as SsoException;
+
+declare(strict_types=1);
+
+use Jasny\SSO\Broker\Broker;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/include/functions.php';
 
-if (isset($_GET['sso_error'])) {
-    header("Location: error.php?sso_error=" . $_GET['sso_error'], true, 307);
-    exit;
+// Configure the broker.
+$broker = new Broker(
+    getenv('SSO_SERVER'),
+    getenv('SSO_BROKER_ID'),
+    getenv('SSO_BROKER_SECRET')
+);
+
+// Attach through redirect if the client isn't attached yet.
+if (!$broker->isAttached()) {
+    $returnUrl = (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+    $attachUrl = $broker->getAttachUrl(['return_url' => $returnUrl]);
+
+    redirect($attachUrl);
+    exit();
 }
 
-$broker = new Jasny\SSO\Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET'));
-$broker->attach(true);
-
+// Get the user info from the SSO server via the API.
 try {
-    $user = $broker->getUserInfo();
-} catch (NotAttachedException $e) {
-    header('Location: ' . $_SERVER['REQUEST_URI']);
-    exit;
-} catch (SsoException $e) {
-    header("Location: error.php?sso_error=" . $e->getMessage(), true, 307);
+    $userInfo = $broker->request('GET', '/api/info.php');
+} catch (\RuntimeException $exception) {
+    require __DIR__ . '/error.php';
+    exit();
 }
 
-if (!$user) {
-    header("Location: login.php", true, 307);
-    exit;
-}
 ?>
 <!doctype html>
 <html>
     <head>
-        <title><?= $broker->broker ?> (Single Sign-On demo)</title>
-        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+        <title><?= $broker->getBrokerId() ?> (Single Sign-On demo)</title>
+
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
     </head>
     <body>
         <div class="container">
-            <h1><?= $broker->broker ?> <small>(Single Sign-On demo)</small></h1>
-            <h3>Logged in</h3>
+            <h1><?= $broker->getBrokerId() ?> <small>(Single Sign-On demo)</small></h1>
 
-            <pre><?= json_encode($user, JSON_PRETTY_PRINT); ?></pre>
+            <?php if ($userInfo === null) : ?>
+                <h3>Logged out</h3>
+                <a id="login" class="button" href="login.php">Login</a>
+            <?php else : ?>
+                <h3>Logged in</h3>
+                <pre><?= json_encode($userInfo, JSON_PRETTY_PRINT); ?></pre>
 
-            <a id="logout" class="btn btn-default" href="login.php?logout=1">Logout</a>
+                <a id="logout" class="button" href="logout.php">Logout</a>
+            <?php endif ?>
         </div>
     </body>
 </html>

@@ -17,19 +17,29 @@ class Server
 {
     use Immutable\With;
 
-    /** Callback to get the secret for a broker. */
-    protected \Closure $getBrokerSecret;
+    /**
+     * Callback to get the secret for a broker.
+     * @var \Closure
+     */
+    protected $getBrokerSecret;
 
-    /** Storage for broker session links. */
-    protected CacheInterface $cache;
+    /**
+     * Storage for broker session links.
+     * @var CacheInterface
+     */
+    protected $cache;
 
-    /** Service to interact with sessions. */
-    protected SessionInterface $session;
+    /**
+     * Service to interact with sessions.
+     * @var SessionInterface
+     */
+    protected $session;
 
     /**
      * Broker of the current session.
+     * @var string|null
      */
-    protected ?string $brokerId = null;
+    protected $brokerId = null;
 
 
     /**
@@ -41,7 +51,6 @@ class Server
     public function __construct(callable $getBrokerSecret, CacheInterface $cache)
     {
         $this->getBrokerSecret = \Closure::fromCallable($getBrokerSecret);
-        $this->auth = $auth;
         $this->cache = $cache;
 
         $this->session = new GlobalSession();
@@ -128,7 +137,7 @@ class Server
      */
     protected function generateBearerToken(string $brokerId, string $token): string
     {
-        return "SSO-{$brokerId}-{$token}-" . $this->generateChecksum('session', $brokerId, $token);
+        return "SSO-{$brokerId}-{$token}-" . $this->generateChecksum('bearer', $brokerId, $token);
     }
 
     /**
