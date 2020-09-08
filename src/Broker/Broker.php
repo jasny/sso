@@ -80,20 +80,23 @@ class Broker
 
     /**
      * Generate session id from session key
+     *
+     * @throws NotAttachedException
      */
-    protected function generateBearerToken(): ?string
+    public function getBearerToken(): ?string
     {
         if ($this->token === null) {
-            return null;
+            throw new NotAttachedException("The client isn't attached to the SSO server for this broker. "
+                . "Make sure that the '" . $this->getCookieName() . "' cookie is set.");
         }
 
         return "SSO-{$this->broker}-{$this->token}-" . $this->generateChecksum('bearer');
     }
 
     /**
-     * Generate session token
+     * Generate session token.
      */
-    public function generateToken()
+    public function generateToken(): void
     {
         if (isset($this->token)) {
             return;
@@ -105,9 +108,9 @@ class Broker
     }
 
     /**
-     * Clears session token
+     * Clears session token.
      */
-    public function clearToken()
+    public function clearToken(): void
     {
         setcookie($this->getCookieName(), null, 1, '/');
         $this->token = null;
@@ -152,7 +155,7 @@ class Broker
      * @param array|string  $params   Query parameters
      * @return string
      */
-    protected function getRequestUrl(string $path, $params = '')
+    protected function getRequestUrl(string $path, $params = ''): string
     {
         $query = is_array($params) ? http_build_query($params) : $params;
 
@@ -167,14 +170,11 @@ class Broker
      * @param string       $path    Relative path
      * @param array|string $data    Query or post parameters
      * @return mixed
+     * @throws NotAttachedException
      */
     public function request(string $method, string $path, $data = null)
     {
-        if (!$this->isAttached()) {
-            throw new NotAttachedException("The client isn't attached to the SSO server for this broker. "
-                . "Make sure that the '" . $this->getCookieName() . "' cookie is set.");
-        }
-
+        $bearer = $this->getBearerToken();
         $url = $this->getRequestUrl($path, $method === 'POST' ? '' : $data);
 
         $ch = curl_init($url);
@@ -182,7 +182,7 @@ class Broker
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: application/json',
-            'Authorization: Bearer '. $this->generateBearerToken()
+            'Authorization: Bearer '. $bearer
         ]);
 
         if ($method === 'POST' && !empty($data)) {
@@ -191,6 +191,19 @@ class Broker
         }
 
         $response = curl_exec($ch);
+
+        return $this->handleResponse($ch, $response);
+    }
+
+    /**
+     * Handle response of Curl request.
+     *
+     * @param resource $ch        Curl handler
+     * @param string   $response
+     * @return mixed
+     */
+    protected function handleResponse($ch, string $response)
+    {
         if (curl_errno($ch) != 0) {
             throw new RequestException('Server request failed: ' . curl_error($ch));
         }
