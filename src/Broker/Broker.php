@@ -31,16 +31,20 @@ class Broker
     protected $secret;
 
     /**
+     * @var bool
+     */
+    protected $initialized = false;
+
+    /**
      * Session token of the client
      * @var string|null
      */
     protected $token;
 
     /**
-     * Cookie lifetime
-     * @var int
+     * @var CookiesInterface
      */
-    protected $cookieTtl;
+    protected $cookies;
 
     /**
      * Class constructor
@@ -48,16 +52,32 @@ class Broker
      * @param string $url        Url of SSO server
      * @param string $broker     My identifier, given by SSO provider.
      * @param string $secret     My secret word, given by SSO provider.
-     * @param int    $cookieTtl  Cookie lifetime in seconds
      */
-    public function __construct(string $url, string $broker, string $secret, int $cookieTtl = 3600)
+    public function __construct(string $url, string $broker, string $secret)
     {
         $this->url = $url;
         $this->broker = $broker;
         $this->secret = $secret;
-        $this->cookieTtl = $cookieTtl;
 
-        $this->token = $_COOKIE[$this->getCookieName()] ?? null;
+        $this->cookies = new GlobalCookies();
+    }
+
+    /**
+     * Get a copy with a custom cookie handler.
+     *
+     * @param CookiesInterface $cookies
+     * @return static
+     */
+    public function withCookies(CookiesInterface $cookies): self
+    {
+        if ($this->cookies === $cookies) {
+            return $this;
+        }
+
+        $clone = clone $this;
+        $clone->cookies = $cookies;
+
+        return $clone;
     }
 
     /**
@@ -66,6 +86,18 @@ class Broker
     public function getBrokerId(): string
     {
         return $this->broker;
+    }
+
+    /**
+     * @return string|null
+     */
+    protected function getToken(): ?string
+    {
+        if (!$this->initialized) {
+            $this->token = $this->cookies->get($this->getCookieName());
+        }
+
+        return $this->token;
     }
 
     /**
@@ -85,7 +117,7 @@ class Broker
      */
     public function getBearerToken(): ?string
     {
-        if ($this->token === null) {
+        if ($this->getToken() === null) {
             throw new NotAttachedException("The client isn't attached to the SSO server for this broker. "
                 . "Make sure that the '" . $this->getCookieName() . "' cookie is set.");
         }
@@ -98,13 +130,12 @@ class Broker
      */
     public function generateToken(): void
     {
-        if (isset($this->token)) {
+        if ($this->getToken() === null) {
             return;
         }
 
         $this->token = base_convert(bin2hex(random_bytes(16)), 16, 36);
-
-        setcookie($this->getCookieName(), $this->token, time() + $this->cookieTtl, '/');
+        $this->cookies->set($this->getCookieName(), $this->token);
     }
 
     /**
@@ -112,7 +143,7 @@ class Broker
      */
     public function clearToken(): void
     {
-        setcookie($this->getCookieName(), null, 1, '/');
+        $this->cookies->clear($this->getCookieName());
         $this->token = null;
     }
 
@@ -121,7 +152,7 @@ class Broker
      */
     public function isAttached(): bool
     {
-        return $this->token !== null;
+        return $this->getToken() !== null;
     }
 
     /**
@@ -135,7 +166,7 @@ class Broker
             'broker' => $this->broker,
             'token' => $this->token,
             'checksum' => $this->generateChecksum('attach')
-        ] + $_GET;
+        ];
 
         return $this->url . "/attach.php?" . http_build_query($data + $params);
     }

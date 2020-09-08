@@ -6,6 +6,8 @@ namespace Jasny\SSO\Server;
 
 /**
  * Interact with session using $_SESSION and PHP's session_* functions.
+ *
+ * @codeCoverageIgnore
  */
 class GlobalSession implements SessionInterface
 {

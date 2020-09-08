@@ -215,3 +215,26 @@ $res = $guzzle->request('GET', '/user', [
     ]
 ]);
 ```
+
+#### Custom cookie handler
+
+By default, the Broker uses the superglobal `$_COOKIE` and `setcookie()` function via the `GlobalCookie` class.
+Alternative, you can make a custom class that implements `CookieInterface`.
+
+```php
+use Jasny\SSO\Broker\CookiesInterface;
+
+class CustomCookieHandler implements CookiesInterface
+{
+    // ...
+}
+```
+
+The `withCookies()` methods creates a copy of the Broker object with the custom cookies interface.
+
+```php
+$server = (new Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET')))
+    ->withCookies(new CustomCookieHandler());
+```
+
+The `withCookies()` method can also be used with a mock object for testing.
