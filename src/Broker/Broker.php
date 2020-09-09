@@ -95,6 +95,7 @@ class Broker
     {
         if (!$this->initialized) {
             $this->token = $this->cookies->get($this->getCookieName());
+            $this->initialized = true;
         }
 
         return $this->token;
@@ -130,7 +131,7 @@ class Broker
      */
     public function generateToken(): void
     {
-        if ($this->getToken() === null) {
+        if ($this->getToken() !== null) {
             return;
         }
 
@@ -164,7 +165,7 @@ class Broker
 
         $data = [
             'broker' => $this->broker,
-            'token' => $this->token,
+            'token' => $this->getToken(),
             'checksum' => $this->generateChecksum('attach')
         ];
 

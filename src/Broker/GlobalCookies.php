@@ -56,7 +56,7 @@ class GlobalCookies implements CookiesInterface
      */
     public function clear(string $name): void
     {
-        setcookie($name, null, 1, $this->domain, $this->path, $this->secure, true);
+        setcookie($name, '', 1, $this->domain, $this->path, $this->secure, true);
     }
 
     /**
