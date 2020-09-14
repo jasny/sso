@@ -9,7 +9,7 @@ require_once __DIR__ . '/include/functions.php';
 
 // Configure the broker.
 $broker = new Broker(
-    getenv('SSO_SERVER') . '/attach.php',
+    getenv('SSO_SERVER'),
     getenv('SSO_BROKER_ID'),
     getenv('SSO_BROKER_SECRET')
 );

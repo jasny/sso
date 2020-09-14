@@ -57,9 +57,9 @@ To proof it's working you should setup the server and two or more brokers, each 
 On *nix (Linux / Unix / OSX) run:
 
     php -S localhost:8000 -t demo/server/
-    export SSO_SERVER=http://localhost:8000 SSO_BROKER_ID=Alice SSO_BROKER_SECRET=8iwzik1bwd; php -S localhost:8001 -t demo/broker/
-    export SSO_SERVER=http://localhost:8000 SSO_BROKER_ID=Greg SSO_BROKER_SECRET=7pypoox2pc; php -S localhost:8002 -t demo/broker/
-    export SSO_SERVER=http://localhost:8000 SSO_BROKER_ID=Julias SSO_BROKER_SECRET=ceda63kmhp; php -S localhost:8003 -t demo/ajax-broker/
+    export SSO_SERVER=http://localhost:8000/attach.php SSO_BROKER_ID=Alice SSO_BROKER_SECRET=8iwzik1bwd; php -S localhost:8001 -t demo/broker/
+    export SSO_SERVER=http://localhost:8000/attach.php SSO_BROKER_ID=Greg SSO_BROKER_SECRET=7pypoox2pc; php -S localhost:8002 -t demo/broker/
+    export SSO_SERVER=http://localhost:8000/attach.php SSO_BROKER_ID=Julias SSO_BROKER_SECRET=ceda63kmhp; php -S localhost:8003 -t demo/ajax-broker/
 
 Now open some tabs and visit 
 
@@ -152,6 +152,18 @@ $server = (new Server($callback, $cache))
 ```
 
 The `withSession()` method can also be used with a mock object for testing.
+
+#### Logging
+
+Enable logging for debugging and catching issues.
+
+```php
+$server = (new Server($callback, $cache))
+    ->withLogging(new Logger());
+``` 
+
+Any PSR-3 compatible logger can be used, like [Monolog](https://packagist.org/packages/monolog/monolog) or
+[Loggy](https://packagist.org/packages/yubb/loggy). The `context` may contain the broker id, token, and session id.
 
 ### Broker
 
