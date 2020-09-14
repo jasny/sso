@@ -35,7 +35,7 @@ try {
 <!doctype html>
 <html>
     <head>
-        <title><?= $broker->getBrokerId() ?> (Single Sign-On demo)</title>
+        <title><?= $broker->getBrokerId() ?> &mdash; Single Sign-On demo</title>
 
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
@@ -43,7 +43,7 @@ try {
     </head>
     <body>
         <div class="container">
-            <h1><?= $broker->getBrokerId() ?> <small>(Single Sign-On demo)</small></h1>
+            <h1>Single Sign-On demo <small>(Broker: <?= $broker->getBrokerId() ?>)</small></h1>
 
             <?php if ($userInfo === null) : ?>
                 <h3>Logged out</h3>

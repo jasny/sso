@@ -20,7 +20,7 @@
                 return;
             }
 
-            loadUserInfo();
+            doApiRequest('info', null, showUserInfo);
         });
 
         req.fail(function (jqxhr) {
@@ -59,15 +59,7 @@
     function showError(data)
     {
         const message = typeof data === 'object' && data.error ? data.error : 'Unexpected error';
-        $('#error').text(message).show();
-    }
-
-    /**
-     * Load and display user info
-     */
-    function loadUserInfo()
-    {
-        doApiRequest('info', null, showUserInfo);
+        $.growl.error({message: message});
     }
 
     /**
@@ -84,7 +76,7 @@
         userInfo.html('');
 
         if (info) {
-            for (var key in info) {
+            for (const key in info) {
                 userInfo.append($('<dt>').text(key));
                 userInfo.append($('<dd>').text(info[key]));
             }
@@ -110,8 +102,6 @@
     });
 
     $('#logout').on('click', function () {
-        doApiRequest('logout', {}, function () {
-            showUserInfo(null);
-        });
-    })
+        doApiRequest('logout', {}, () => showUserInfo(null));
+    });
 }(jQuery);
