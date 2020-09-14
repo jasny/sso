@@ -9,7 +9,7 @@ require_once __DIR__ . '/include/functions.php';
 
 // Configure the broker.
 $broker = new Broker(
-    getenv('SSO_SERVER'),
+    getenv('SSO_SERVER') . '/attach.php',
     getenv('SSO_BROKER_ID'),
     getenv('SSO_BROKER_SECRET')
 );
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </head>
     <body>
         <div class="container">
-            <h1><?= $broker->getBrokerId() ?> <small>(Single Sign-On demo)</small></h1>
+            <h1>Single Sign-On demo <small>(Broker: <?= $broker->getBrokerId() ?>)</small></h1>
 
             <?php if (isset($error)) : ?>
                 <div class="error"><?= $error ?></div>

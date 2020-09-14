@@ -6,8 +6,9 @@ namespace Jasny\SSO\Server;
 
 use Jasny\Immutable;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Psr\SimpleCache\CacheInterface;
-use Psr\SimpleCache\InvalidArgumentException;
 
 /**
  * Single sign-on server.
@@ -30,17 +31,15 @@ class Server
     protected $cache;
 
     /**
+     * @var LoggerInterface
+     */
+    protected $logger;
+
+    /**
      * Service to interact with sessions.
      * @var SessionInterface
      */
     protected $session;
-
-    /**
-     * Broker of the current session.
-     * @var string|null
-     */
-    protected $brokerId = null;
-
 
     /**
      * Class constructor.
@@ -53,11 +52,24 @@ class Server
         $this->getBrokerSecret = \Closure::fromCallable($getBrokerSecret);
         $this->cache = $cache;
 
+        $this->logger = new NullLogger();
         $this->session = new GlobalSession();
     }
 
     /**
+     * Get a copy of the service with logging.
+     *
+     * @return static
+     */
+    public function withLogger(LoggerInterface $logger): self
+    {
+        return $this->withProperty('logger', $logger);
+    }
+
+    /**
      * Get a copy of the service with a custom session service.
+     *
+     * @return static
      */
     public function withSession(SessionInterface $session): self
     {
@@ -83,18 +95,32 @@ class Server
             throw new BrokerException("Broker didn't use bearer authentication", 401);
         }
 
+        [$brokerId, $token] = $this->parseBearer($bearer);
+
         try {
-            $linkedId = $this->cache->get($bearer);
+            $sessionId = $this->cache->get('SSO-' . $brokerId . '-' . $token);
         } catch (\Exception $exception) {
-            throw new ServerException("Failed to get session id from cache", 500, $exception);
+            $this->logger->error(
+                "Failed to get session id: " . $exception->getMessage(),
+                ['broker' => $brokerId, 'token' => $token]
+            );
+            throw new ServerException("Failed to get session id", 500, $exception);
         }
 
-        if (!$linkedId) {
-            throw new BrokerException("Bearer token isn't attached to a user session", 403);
+        if (!$sessionId) {
+            $this->logger->warning(
+                "Bearer token isn't attached to a client session",
+                ['broker' => $brokerId, 'token' => $token]
+            );
+            throw new BrokerException("Bearer token isn't attached to a client session", 403);
         }
 
-        $this->brokerId = $this->getBrokerIdFromBearer($bearer);
-        $this->session->start($linkedId);
+        $this->session->start($sessionId);
+
+        $this->logger->debug(
+            "Broker request with session",
+            ['broker' => $brokerId, 'token' => $token, 'session' => $sessionId]
+        );
     }
 
     /**
@@ -112,32 +138,32 @@ class Server
     }
 
     /**
-     * Get the broker id from the bearer token used by the broker.
+     * Get the broker id and token from the bearer token used by the broker.
+     *
+     * @return string[]
+     * @throws BrokerException
      */
-    protected function getBrokerIdFromBearer(string $bearer): string
+    protected function parseBearer(string $bearer): array
     {
         $matches = null;
 
         if (!(bool)preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $bearer, $matches)) {
-            throw new BrokerException("Invalid session id");
+            $this->logger->warning("Invalid bearer token", ['bearer' => $bearer]);
+            throw new BrokerException("Invalid bearer token");
         }
 
-        $brokerId = $matches[1];
-        $token = $matches[2];
+        [, $brokerId, $token, $checksum] = $matches;
+        $this->validateChecksum($checksum, 'bearer', $brokerId, $token);
 
-        if ($this->generateBearerToken($brokerId, $token) != $bearer) {
-            throw new BrokerException("Bearer token checksum failed", 403);
-        }
-
-        return $brokerId;
+        return [$brokerId, $token];
     }
 
     /**
      * Generate session id from session token.
      */
-    protected function generateBearerToken(string $brokerId, string $token): string
+    protected function getCacheKey(string $brokerId, string $token): string
     {
-        return "SSO-{$brokerId}-{$token}-" . $this->generateChecksum('bearer', $brokerId, $token);
+        return "SSO-{$brokerId}-{$token}";
     }
 
     /**
@@ -145,23 +171,48 @@ class Server
      */
     protected function generateChecksum(string $command, string $brokerId, string $token): string
     {
-        $secret = ($this->getBrokerSecret)($brokerId);
+        try {
+            $secret = ($this->getBrokerSecret)($brokerId);
+        } catch (\Exception $exception) {
+            $this->logger->warning(
+                "Failed to get broker secret: " . $exception->getMessage(),
+                ['broker' => $brokerId, 'token' => $token]
+            );
+            throw new ServerException("Failed to get broker secret", 500, $exception);
+        }
 
         if ($secret === null) {
-            throw new BrokerException("Invalid broker id", 400);
+            $this->logger->warning("Unknown broker id", ['broker' => $brokerId, 'token' => $token]);
+            throw new BrokerException("Unknown broker id", 400);
         }
 
-        $checksum = hash_hmac('sha256', $command . ':' . $token, $secret);
-
-        if ($checksum === null) {
-            throw new ServerException("Failed to generate $command checksum");
-        }
-
-        return $checksum;
+        return hash_hmac('sha256', $command . ':' . $token, $secret);
     }
 
     /**
-     * Attach a user session to a broker session.
+     * Assert that the checksum matches the expected checksum.
+     *
+     * @param string $expected
+     * @param string $command
+     * @param string $brokerId
+     * @param string $token
+     * @throws BrokerException
+     */
+    protected function validateChecksum(string $checksum, string $command, string $brokerId, string $token): void
+    {
+        $expected = $this->generateChecksum($command, $brokerId, $token);
+
+        if ($checksum !== $expected) {
+            $this->logger->warning(
+                "Invalid $command checksum",
+                ['expected' => $expected, 'received' => $checksum, 'broker' => $brokerId, 'token' => $token]
+            );
+            throw new BrokerException("Invalid checksum", 400);
+        }
+    }
+
+    /**
+     * Attach a client session to a broker session.
      *
      * @throws BrokerException
      * @throws ServerException
@@ -172,23 +223,23 @@ class Server
         $token = $this->getQueryParam($request, 'token', true);
 
         $checksum = $this->getQueryParam($request, 'checksum', true);
-        $expectedChecksum = $this->generateChecksum('attach', $brokerId, $token);
-
-        if ($checksum !== $expectedChecksum) {
-            throw new BrokerException("Invalid checksum", 400);
-        }
+        $this->validateChecksum($checksum, 'attach', $brokerId, $token);
 
         if (!$this->session->isActive()) {
             $this->session->start();
         }
 
-        $bearer = $this->generateBearerToken($brokerId, $token);
+        $key = $this->getCacheKey($brokerId, $token);
+        $cached = $this->cache->set($key, $this->session->getId());
 
-        try {
-            $this->cache->set($bearer, $this->session->getId());
-        } catch (InvalidArgumentException $exception) {
-            throw new ServerException("Failed to attach bearer token to session id", 500, $exception);
+        $info = ['broker' => $brokerId, 'token' => $token, 'session' => $this->session->getId()];
+
+        if (!$cached) {
+            $this->logger->error("Failed to attach attach bearer token to session id due to cache issue", $info);
+            throw new ServerException("Failed to attach bearer token to session id");
         }
+
+        $this->logger->info("Attached broker token to session", $info);
     }
 
     /**

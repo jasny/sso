@@ -16,12 +16,12 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 $config = require __DIR__ . '/include/config.php';
 
 // Instantiate the SSO server.
-$ssoServer = new Server(
+$ssoServer = (new Server(
     function (string $id) use ($config) {
         return $config['brokers'][$id] ?? null;  // Callback to get the broker secret. You might fetch this from DB.
     },
     new FileCache(sys_get_temp_dir())            // Any PSR-16 compatible cache
-);
+))->withLogger(new Loggy('SSO'));
 
 try {
     // Attach the broker token to the user session. Uses query parameters from $_GET.

@@ -14,12 +14,12 @@ use Jasny\SSO\Server\ExceptionInterface as SsoException;
 $config = require __DIR__ . '/config.php';
 
 // Instantiate the SSO server.
-$ssoServer = new Server(
+$ssoServer = (new Server(
     function (string $id) use ($config) {
         return $config['brokers'][$id] ?? null;  // Callback to get the broker secret. You might fetch this from DB.
     },
     new FileCache(sys_get_temp_dir())            // Any PSR-16 compatible cache
-);
+))->withLogger(new Loggy('SSO'));
 
 // Start the session using the broker bearer token (rather than a session cookie).
 try {

@@ -13,7 +13,7 @@ namespace Jasny\SSO\Broker;
 class Broker
 {
     /**
-     * Url of SSO server
+     * URL of SSO server.
      * @var string
      */
     protected $url;
@@ -49,12 +49,20 @@ class Broker
     /**
      * Class constructor
      *
-     * @param string $url        Url of SSO server
-     * @param string $broker     My identifier, given by SSO provider.
-     * @param string $secret     My secret word, given by SSO provider.
+     * @param string $url     Url of SSO server
+     * @param string $broker  My identifier, given by SSO provider.
+     * @param string $secret  My secret word, given by SSO provider.
      */
     public function __construct(string $url, string $broker, string $secret)
     {
+        if (!preg_match('~^https?://~', $url)) {
+            throw new \InvalidArgumentException("Invalid SSO server URL '$url'");
+        }
+
+        if (preg_match('/\W/', $broker)) {
+            throw new \InvalidArgumentException("The broker id must be alphanumeric");
+        }
+
         $this->url = $url;
         $this->broker = $broker;
         $this->secret = $secret;
@@ -169,7 +177,7 @@ class Broker
             'checksum' => $this->generateChecksum('attach')
         ];
 
-        return $this->url . "/attach.php?" . http_build_query($data + $params);
+        return $this->url . "?" . http_build_query($data + $params);
     }
 
     /**
@@ -191,7 +199,11 @@ class Broker
     {
         $query = is_array($params) ? http_build_query($params) : $params;
 
-        return $this->url . '/' . ltrim($path, '/') . ($query !== '' ? '?' . $query : '');
+        $base = $path[0] === '/'
+            ? preg_replace('~^(\w+://[^/]+).*~', '$1', $this->url)
+            : preg_replace('~/[^/]*$~', '', $this->url);
+
+        return $base . '/' . ltrim($path, '/') . ((string)$query !== '' ? '?' . $query : '');
     }
 
 

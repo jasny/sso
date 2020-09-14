@@ -158,7 +158,7 @@ The `withSession()` method can also be used with a mock object for testing.
 When creating a `Broker` instance, you need to pass the server url, broker id and broker secret. The broker id
 and secret needs to match the secret registered at the server.
 
-**Be careful**: *The broker id SHOULD be alphanumeric. In any case it MUST NOT contain the "-" character.*
+**CAVEAT**: *The broker id MUST be alphanumeric.*
 
 #### Attach
 
