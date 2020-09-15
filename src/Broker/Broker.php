@@ -42,9 +42,9 @@ class Broker
     protected $token;
 
     /**
-     * @var CookiesInterface
+     * @var \ArrayAccess
      */
-    protected $cookies;
+    protected $state;
 
     /**
      * Class constructor
@@ -67,23 +67,23 @@ class Broker
         $this->broker = $broker;
         $this->secret = $secret;
 
-        $this->cookies = new GlobalCookies();
+        $this->state = new Cookies();
     }
 
     /**
-     * Get a copy with a custom cookie handler.
+     * Get a copy with a different handler for the user state (like cookie or session).
      *
-     * @param CookiesInterface $cookies
+     * @param \ArrayAccess $handler
      * @return static
      */
-    public function withCookies(CookiesInterface $cookies): self
+    public function withTokenIn(\ArrayAccess $handler): self
     {
-        if ($this->cookies === $cookies) {
+        if ($this->state === $handler) {
             return $this;
         }
 
         $clone = clone $this;
-        $clone->cookies = $cookies;
+        $clone->state = $handler;
 
         return $clone;
     }
@@ -102,7 +102,7 @@ class Broker
     protected function getToken(): ?string
     {
         if (!$this->initialized) {
-            $this->token = $this->cookies->get($this->getCookieName());
+            $this->token = $this->state[$this->getCookieName()];
             $this->initialized = true;
         }
 
@@ -144,7 +144,7 @@ class Broker
         }
 
         $this->token = base_convert(bin2hex(random_bytes(16)), 16, 36);
-        $this->cookies->set($this->getCookieName(), $this->token);
+        $this->state[$this->getCookieName()] = $this->token;
     }
 
     /**
@@ -152,7 +152,7 @@ class Broker
      */
     public function clearToken(): void
     {
-        $this->cookies->clear($this->getCookieName());
+        unset($this->state[$this->getCookieName()]);
         $this->token = null;
     }
 

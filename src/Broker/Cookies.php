@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Jasny\SSO\Broker;
 
 /**
- * Use global $_COOKIES and setcookie().
+ * Use global $_COOKIE and setcookie() to persist the client token.
  *
  * @codeCoverageIgnore
  */
-class GlobalCookies implements CookiesInterface
+class Cookies implements \ArrayAccess
 {
     /** @var int */
     protected $ttl;
@@ -42,28 +42,39 @@ class GlobalCookies implements CookiesInterface
     /**
      * @inheritDoc
      */
-    public function set(string $name, $value): void
+    public function offsetSet($name, $value)
     {
         $success = setcookie($name, $value, time() + $this->ttl, $this->domain, $this->path, $this->secure, true);
 
         if (!$success) {
             throw new \RuntimeException("Failed to set cookie '$name'");
         }
+
+        $_COOKIE[$name] = $value;
     }
 
     /**
      * @inheritDoc
      */
-    public function clear(string $name): void
+    public function offsetUnset($name): void
     {
         setcookie($name, '', 1, $this->domain, $this->path, $this->secure, true);
+        unset($_COOKIE[$name]);
     }
 
     /**
      * @inheritDoc
      */
-    public function get(string $name)
+    public function offsetGet($name)
     {
         return $_COOKIE[$name] ?? null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function offsetExists($name)
+    {
+        return isset($_COOKIE[$name]);
     }
 }

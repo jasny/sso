@@ -74,9 +74,9 @@ john     | john123
 
 _Note that after logging in, you need to refresh on the other brokers to see the effect._
 
-## Usage
+# Usage
 
-### Server
+## Server
 
 The `Server` class takes a callback as first constructor argument. This callback should lookup the secret
 for a broker based on the id.
@@ -88,12 +88,12 @@ client session.
 use Jasny\SSO\Server\Server;
 
 $server = new Server(
-    fn (string $id): string => $brokerSecrets[$id],  // Unique secret for each broker
+    fn(string $id): string => $brokerSecrets[$id],  // Unique secret for each broker
     new Cache()                                      // Any PSR-16 compatible cache
 );
 ```
 
-#### Attach
+### Attach
 
 A client needs attach the broker token to the session id by doing an HTTP request to the server. This request can be
 handled by calling `attach()`.
@@ -104,7 +104,7 @@ $server->attach();
 
 If it's not possible to attach (for instance in case of an incorrect checksum), an Exception is thrown.
 
-#### Handle broker API request
+### Handle broker API request
 
 After the client session is attached to the broker token, the broker is able to send API requests on behalf of the
 client. Calling the `startBrokerSession()` method with start the session of the client based on the bearer token. This
@@ -119,7 +119,7 @@ the scope of the project. However since the broker uses normal sessions, any exi
 
 _If you're lookup for an authentication library, consider using [Jasny Auth](https://github.com/jasny/auth)._
 
-#### PSR-7
+### PSR-7
 
 By default, the library works with superglobals like `$_GET` and `$_SERVER`. Alternatively it can use a PSR-7 server
 request. This can be passed to `attach()` and `startBrokerSession()` as argument.
@@ -128,7 +128,7 @@ request. This can be passed to `attach()` and `startBrokerSession()` as argument
 $server->attach($serverRequest);
 ```
 
-#### Session interface
+### Session interface
 
 By default, the library uses the superglobal `$_SESSION` and the `php_session_*()` functions. It does this through
 the `GlobalSession` object, which implements `SessionInterface`.
@@ -153,7 +153,7 @@ $server = (new Server($callback, $cache))
 
 The `withSession()` method can also be used with a mock object for testing.
 
-#### Logging
+### Logging
 
 Enable logging for debugging and catching issues.
 
@@ -165,14 +165,14 @@ $server = (new Server($callback, $cache))
 Any PSR-3 compatible logger can be used, like [Monolog](https://packagist.org/packages/monolog/monolog) or
 [Loggy](https://packagist.org/packages/yubb/loggy). The `context` may contain the broker id, token, and session id.
 
-### Broker
+## Broker
 
 When creating a `Broker` instance, you need to pass the server url, broker id and broker secret. The broker id
 and secret needs to match the secret registered at the server.
 
 **CAVEAT**: *The broker id MUST be alphanumeric.*
 
-#### Attach
+### Attach
 
 Before the broker can do API requests on the client's behalve, the client needs to attach the broker token to the client
 session. For this, the client must do an HTTP request to the SSO Server.
@@ -204,7 +204,7 @@ if (!$broker->isAttached()) {
 }
 ```
 
-#### API requests
+### API requests
 
 Once attached, the broker is able to do API requests on behalf of the client.
 
@@ -228,25 +228,46 @@ $res = $guzzle->request('GET', '/user', [
 ]);
 ```
 
-#### Custom cookie handler
+### Client state
 
-By default, the Broker uses the superglobal `$_COOKIE` and `setcookie()` function via the `GlobalCookie` class.
-Alternative, you can make a custom class that implements `CookieInterface`.
+By default, the Broker uses the cookies (`$_COOKIE` and `setcookie()`) via the `Cookies` class to persist the client's
+SSO token.
+
+#### Cookie
+
+Instantiate a new `Cookies` object with custom parameters to modify things like cookie TTL, domain and https only.
 
 ```php
-use Jasny\SSO\Broker\CookiesInterface;
+use Jasny\SSO\Broker\{Broker,Cookies};
 
-class CustomCookieHandler implements CookiesInterface
+$broker = (new Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET')))
+    ->withTokenIn(new Cookies(7200, '/myapp', 'example.com', true));
+```
+
+_(The cookie can never be accessed by the browser.)_
+
+#### Session
+
+Alternative, you can store the SSO token in a PHP session for the broker by using `SessionState`.
+
+```php
+use Jasny\SSO\Broker\{Broker,Session};
+
+session_start();
+
+$broker = (new Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET')))
+    ->withTokenIn(new Session());
+```
+
+#### Custom
+
+The method accepts any object that implements `ArrayAccess`, allowing you to create a custom handler if needed.
+
+```php
+class CustomStateHandler implements \ArrayAccess
 {
     // ...
 }
 ```
 
-The `withCookies()` methods creates a copy of the Broker object with the custom cookies interface.
-
-```php
-$server = (new Broker(getenv('SSO_SERVER'), getenv('SSO_BROKER_ID'), getenv('SSO_BROKER_SECRET')))
-    ->withCookies(new CustomCookieHandler());
-```
-
-The `withCookies()` method can also be used with a mock object for testing.
+This can also be used with a mock object for testing. 
