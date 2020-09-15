@@ -55,11 +55,11 @@ class Broker
      */
     public function __construct(string $url, string $broker, string $secret)
     {
-        if (!preg_match('~^https?://~', $url)) {
+        if (!(bool)preg_match('~^https?://~', $url)) {
             throw new \InvalidArgumentException("Invalid SSO server URL '$url'");
         }
 
-        if (preg_match('/\W/', $broker)) {
+        if ((bool)preg_match('/\W/', $broker)) {
             throw new \InvalidArgumentException("The broker id must be alphanumeric");
         }
 
@@ -166,6 +166,9 @@ class Broker
 
     /**
      * Get URL to attach session at SSO server.
+     *
+     * @param array<string,mixed> $params
+     * @return string
      */
     public function getAttachUrl(array $params = []): string
     {
@@ -191,8 +194,8 @@ class Broker
     /**
      * Get the request url for a command
      *
-     * @param string        $path
-     * @param array|string  $params   Query parameters
+     * @param string                     $path
+     * @param array<string,mixed>|string $params   Query parameters
      * @return string
      */
     protected function getRequestUrl(string $path, $params = ''): string
@@ -203,25 +206,30 @@ class Broker
             ? preg_replace('~^(\w+://[^/]+).*~', '$1', $this->url)
             : preg_replace('~/[^/]*$~', '', $this->url);
 
-        return $base . '/' . ltrim($path, '/') . ((string)$query !== '' ? '?' . $query : '');
+        return $base . '/' . ltrim($path, '/') . ($query !== '' ? '?' . $query : '');
     }
 
 
     /**
      * Send an HTTP request to the SSO server.
      *
-     * @param string       $method  HTTP method: 'GET', 'POST', 'DELETE'
-     * @param string       $path    Relative path
-     * @param array|string $data    Query or post parameters
+     * @param string                     $method  HTTP method: 'GET', 'POST', 'DELETE'
+     * @param string                     $path    Relative path
+     * @param array<string,mixed>|string $data    Query or post parameters
      * @return mixed
      * @throws NotAttachedException
      */
-    public function request(string $method, string $path, $data = null)
+    public function request(string $method, string $path, $data = '')
     {
         $bearer = $this->getBearerToken();
         $url = $this->getRequestUrl($path, $method === 'POST' ? '' : $data);
 
         $ch = curl_init($url);
+
+        if ($ch === false) {
+            throw new \RuntimeException("Failed to initialize a cURL session");
+        }
+
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -229,12 +237,12 @@ class Broker
             'Authorization: Bearer '. $bearer
         ]);
 
-        if ($method === 'POST' && !empty($data)) {
+        if ($method === 'POST' && ($data !== [] && $data !== '')) {
             $post = is_string($data) ? $data : http_build_query($data);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
         }
 
-        $response = curl_exec($ch);
+        $response = (string)curl_exec($ch);
 
         return $this->handleResponse($ch, $response);
     }
@@ -267,9 +275,9 @@ class Broker
 
         if ($httpCode === 403) {
             $this->clearToken();
-            throw new NotAttachedException($data['error'] ?: $response, $httpCode);
+            throw new NotAttachedException($data['error'] ?? $response, $httpCode);
         } elseif ($httpCode >= 400) {
-            throw new RequestException($data['error'] ?: $response, $httpCode);
+            throw new RequestException($data['error'] ?? $response, $httpCode);
         }
 
         return $data;

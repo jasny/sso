@@ -192,7 +192,7 @@ class Server
     /**
      * Assert that the checksum matches the expected checksum.
      *
-     * @param string $expected
+     * @param string $checksum
      * @param string $command
      * @param string $brokerId
      * @param string $token

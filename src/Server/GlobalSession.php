@@ -13,7 +13,7 @@ class GlobalSession implements SessionInterface
 {
     /**
      * Options passed to session_start().
-     * @var array
+     * @var array<string,mixed>
      */
     protected $options;
 
