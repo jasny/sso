@@ -44,8 +44,7 @@ $returnType =
     (isset($_GET['callback']) ? 'jsonp' : null) ??
     (strpos($_SERVER['HTTP_ACCEPT'], 'text/html') !== false ? 'html' : null) ??
     (strpos($_SERVER['HTTP_ACCEPT'], 'image/') !== false ? 'image' : null) ??
-    (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false ? 'json' : null) ??
-    (isset($_GET['HTTP_REFERER']) ? 'redirect' : null);
+    (strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false ? 'json' : null);
 
 switch ($returnType) {
     case 'json':

@@ -9,9 +9,18 @@ declare(strict_types=1);
 
 return [
     'brokers' => [
-        'Alice' => '8iwzik1bwd',
-        'Greg' => '7pypoox2pc',
-        'Julias' => 'ceda63kmhp',
+        'Alice' => [
+            'secret' => '8iwzik1bwd',
+            'domains' => ['localhost'],
+        ],
+        'Greg' => [
+            'secret' => '7pypoox2pc',
+            'domains' => ['localhost'],
+        ],
+        'Julius' => [
+            'secret' => 'ceda63kmhp',
+            'domains' => ['localhost'],
+        ],
     ],
     'users' => [
         'jackie' => [

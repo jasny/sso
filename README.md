@@ -59,7 +59,7 @@ On *nix (Linux / Unix / OSX) run:
     php -S localhost:8000 -t demo/server/
     export SSO_SERVER=http://localhost:8000/attach.php SSO_BROKER_ID=Alice SSO_BROKER_SECRET=8iwzik1bwd; php -S localhost:8001 -t demo/broker/
     export SSO_SERVER=http://localhost:8000/attach.php SSO_BROKER_ID=Greg SSO_BROKER_SECRET=7pypoox2pc; php -S localhost:8002 -t demo/broker/
-    export SSO_SERVER=http://localhost:8000/attach.php SSO_BROKER_ID=Julias SSO_BROKER_SECRET=ceda63kmhp; php -S localhost:8003 -t demo/ajax-broker/
+    export SSO_SERVER=http://localhost:8000/attach.php SSO_BROKER_ID=Julius SSO_BROKER_SECRET=ceda63kmhp; php -S localhost:8003 -t demo/ajax-broker/
 
 Now open some tabs and visit 
 
