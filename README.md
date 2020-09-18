@@ -87,19 +87,29 @@ client session.
 ```php
 use Jasny\SSO\Server\Server;
 
+$brokers = [
+    'foo' => ['secret' => '8OyRi6Ix1x', 'domains' => ['example.com']],
+    // ...
+];
+
 $server = new Server(
-    fn(string $id): string => $brokerSecrets[$id],  // Unique secret for each broker
+    fn(string $id): string => $brokers[$id] ?? null, // Unique secret and allowed domains for each broker.
     new Cache()                                      // Any PSR-16 compatible cache
 );
 ```
+
+_In this example the brokers are simply configured as array. But typically you want to fetch the broker info from a DB._
 
 ### Attach
 
 A client needs attach the broker token to the session id by doing an HTTP request to the server. This request can be
 handled by calling `attach()`.
 
+The `attach()` method returns a verification code. This code must be returned to the broker, as it's needed to
+calculate the checksum.
+
 ```php
-$server->attach();
+$verificationCode = $server->attach();
 ```
 
 If it's not possible to attach (for instance in case of an incorrect checksum), an Exception is thrown.
@@ -125,7 +135,7 @@ By default, the library works with superglobals like `$_GET` and `$_SERVER`. Alt
 request. This can be passed to `attach()` and `startBrokerSession()` as argument.
 
 ```php
-$server->attach($serverRequest);
+$verificationCode = $server->attach($serverRequest);
 ```
 
 ### Session interface
@@ -167,8 +177,8 @@ Any PSR-3 compatible logger can be used, like [Monolog](https://packagist.org/pa
 
 ## Broker
 
-When creating a `Broker` instance, you need to pass the server url, broker id and broker secret. The broker id
-and secret needs to match the secret registered at the server.
+When creating a `Broker` instance, you need to pass the server url, broker id and broker secret. The broker id and
+secret needs to match the secret registered at the server.
 
 **CAVEAT**: *The broker id MUST be alphanumeric.*
 
@@ -201,6 +211,17 @@ if (!$broker->isAttached()) {
     header("Location: $attachUrl", true, 303);
     echo "You're redirected to <a href='$attachUrl'>$attachUrl</a>";
     exit();
+}
+```
+
+### Verify
+
+Upon verification the SSO Server will return a verification code (as query parameter of in the JSON response). The code
+is used to calculate the checksum. The verification code prevents session hijacking using an attach link.
+
+```php
+if (isset($_GET['sso_verify'])) {
+    $broker->verify($_GET['sso_verify']);
 }
 ```
 

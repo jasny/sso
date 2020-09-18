@@ -20,7 +20,9 @@
                 return;
             }
 
-            doApiRequest('info', null, showUserInfo);
+            $.ajax({method: 'POST', url: 'verify.php', data: data}).done(function () {
+                doApiRequest('info', null, showUserInfo);
+            });
         });
 
         req.fail(function (jqxhr) {

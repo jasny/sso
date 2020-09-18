@@ -3,7 +3,11 @@
 declare(strict_types=1);
 
 $brokerId = getenv('SSO_BROKER_ID');
-$error = isset($exception) ? $exception->getMessage() : "Unknown error";
+
+$error = isset($exception) ? $exception->getMessage() : ($_GET['sso_error'] ?? "Unknown error");
+$errorDetails = isset($exception) && $exception->getPrevious() !== null
+    ? $exception->getPrevious()->getMessage()
+    : null;
 
 ?>
 <!doctype html>
@@ -29,7 +33,14 @@ $error = isset($exception) ? $exception->getMessage() : "Unknown error";
             <h1>Single Sign-On demo <small>(<?= $brokerId ?>)</small></h1>
 
             <div class="error">
-                <?= $error ?>
+                <?php if ($errorDetails === null) : ?>
+                    <?= htmlentities($error) ?>
+                <?php else : ?>
+                    <details>
+                        <summary><?= htmlentities($error) ?></summary>
+                        <?= $errorDetails ?>
+                    </details>
+                <?php endif ?>
             </div>
             
             <a href="/">Try again</a>

@@ -36,10 +36,16 @@ class Broker
     protected $initialized = false;
 
     /**
-     * Session token of the client
+     * Session token of the client.
      * @var string|null
      */
     protected $token;
+
+    /**
+     * Verification code returned by the server.
+     * @var string|null
+     */
+    protected $verificationCode;
 
     /**
      * @var \ArrayAccess
@@ -97,26 +103,48 @@ class Broker
     }
 
     /**
+     * Get information from cookie.
+     */
+    protected function initialize(): void
+    {
+        if ($this->initialized) {
+            return;
+        }
+
+        $this->token = $this->state[$this->getCookieName('token')];
+        $this->verificationCode = $this->state[$this->getCookieName('verify')];
+        $this->initialized = true;
+    }
+
+    /**
      * @return string|null
      */
     protected function getToken(): ?string
     {
-        if (!$this->initialized) {
-            $this->token = $this->state[$this->getCookieName()];
-            $this->initialized = true;
-        }
+        $this->initialize();
 
         return $this->token;
     }
 
     /**
+     * @return string|null
+     */
+    protected function getVerificationCode(): ?string
+    {
+        $this->initialize();
+
+        return $this->verificationCode;
+    }
+
+    /**
      * Get the cookie name.
-     *
      * The broker name is part of the cookie name. This resolves issues when multiple brokers are on the same domain.
      */
-    protected function getCookieName(): string
+    protected function getCookieName(string $type): string
     {
-        return 'sso_token_' . preg_replace('/[_\W]+/', '_', strtolower($this->broker));
+        $brokerName = preg_replace('/[_\W]+/', '_', strtolower($this->broker));
+
+        return "sso_{$type}_{$brokerName}";
     }
 
     /**
@@ -126,12 +154,15 @@ class Broker
      */
     public function getBearerToken(): ?string
     {
-        if ($this->getToken() === null) {
+        $token = $this->getToken();
+        $verificationCode = $this->getVerificationCode();
+
+        if ($verificationCode === null) {
             throw new NotAttachedException("The client isn't attached to the SSO server for this broker. "
-                . "Make sure that the '" . $this->getCookieName() . "' cookie is set.");
+                . "Make sure that the '" . $this->getCookieName('verify') . "' cookie is set.");
         }
 
-        return "SSO-{$this->broker}-{$this->token}-" . $this->generateChecksum('bearer');
+        return "SSO-{$this->broker}-{$token}-" . $this->generateChecksum("bearer:$verificationCode");
     }
 
     /**
@@ -143,8 +174,8 @@ class Broker
             return;
         }
 
-        $this->token = base_convert(bin2hex(random_bytes(16)), 16, 36);
-        $this->state[$this->getCookieName()] = $this->token;
+        $this->token = base_convert(bin2hex(random_bytes(32)), 16, 36);
+        $this->state[$this->getCookieName('token')] = $this->token;
     }
 
     /**
@@ -152,8 +183,11 @@ class Broker
      */
     public function clearToken(): void
     {
-        unset($this->state[$this->getCookieName()]);
+        unset($this->state[$this->getCookieName('token')]);
+        unset($this->state[$this->getCookieName('verify')]);
+
         $this->token = null;
+        $this->verificationCode = null;
     }
 
     /**
@@ -161,7 +195,7 @@ class Broker
      */
     public function isAttached(): bool
     {
-        return $this->getToken() !== null;
+        return $this->getVerificationCode() !== null;
     }
 
     /**
@@ -184,11 +218,31 @@ class Broker
     }
 
     /**
+     * Verify attaching to the SSO server by providing the verification code.
+     */
+    public function verify(string $code): void
+    {
+        $this->initialize();
+
+        if ($this->verificationCode === $code) {
+            return;
+        }
+
+        if ($this->verificationCode !== null) {
+            trigger_error("SSO attach already verified", E_USER_WARNING);
+            return;
+        }
+
+        $this->verificationCode = $code;
+        $this->state[$this->getCookieName('verify')] = $code;
+    }
+
+    /**
      * Generate checksum for a broker.
      */
     protected function generateChecksum(string $command): string
     {
-        return hash_hmac('sha256', $command . ':' . $this->token, $this->secret);
+        return base_convert(hash_hmac('sha256', $command . ':' . $this->token, $this->secret), 16, 36);
     }
 
     /**
@@ -268,7 +322,11 @@ class Broker
         }
 
         if ($contentType != 'application/json') {
-            throw new RequestException("Expected 'application/json' response, got '$contentType'");
+            throw new RequestException(
+                "Expected 'application/json' response, got '$contentType'",
+                0,
+                new RequestException($response, $httpCode)
+            );
         }
 
         $data = json_decode($response, true);

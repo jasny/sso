@@ -95,7 +95,7 @@ class Server
             throw new BrokerException("Broker didn't use bearer authentication", 401);
         }
 
-        [$brokerId, $token] = $this->parseBearer($bearer);
+        [$brokerId, $token, $checksum] = $this->parseBearer($bearer);
 
         try {
             $sessionId = $this->cache->get('SSO-' . $brokerId . '-' . $token);
@@ -114,6 +114,9 @@ class Server
             );
             throw new BrokerException("Bearer token isn't attached to a client session", 403);
         }
+
+        $command = 'bearer:' . $this->getVerificationCode($brokerId, $token, $sessionId);
+        $this->validateChecksum($checksum, $command, $brokerId, $token);
 
         $this->session->start($sessionId);
 
@@ -152,10 +155,7 @@ class Server
             throw new BrokerException("Invalid bearer token");
         }
 
-        [, $brokerId, $token, $checksum] = $matches;
-        $this->validateChecksum($checksum, 'bearer', $brokerId, $token);
-
-        return [$brokerId, $token];
+        return array_slice($matches, 1);
     }
 
     /**
@@ -178,6 +178,14 @@ class Server
     }
 
     /**
+     * Generate the verification code based on the token using the server secret.
+     */
+    protected function getVerificationCode(string $brokerId, string $token, string $sessionId): string
+    {
+        return base_convert(hash('sha256', $brokerId . $token . $sessionId), 16, 36);
+    }
+
+    /**
      * Generate checksum for a broker.
      */
     protected function generateChecksum(string $command, string $brokerId, string $token): string
@@ -197,7 +205,7 @@ class Server
             throw new BrokerException("Unknown broker id", 400);
         }
 
-        return hash_hmac('sha256', $command . ':' . $token, $secret);
+        return base_convert(hash_hmac('sha256', $command . ':' . $token, $secret), 16, 36);
     }
 
     /**
@@ -239,17 +247,20 @@ class Server
 
     /**
      * Attach a client session to a broker session.
+     * Returns the verification code.
      *
      * @throws BrokerException
      * @throws ServerException
      */
-    public function attach(?ServerRequestInterface $request = null): void
+    public function attach(?ServerRequestInterface $request = null): string
     {
         ['broker' => $brokerId, 'token' => $token] = $this->processAttachRequest($request);
 
         if (!$this->session->isActive()) {
             $this->session->start();
         }
+
+        $this->assertNotAttached($brokerId, $token);
 
         $key = $this->getCacheKey($brokerId, $token);
         $cached = $this->cache->set($key, $this->session->getId());
@@ -262,6 +273,21 @@ class Server
         }
 
         $this->logger->info("Attached broker token to session", $info);
+
+        return $this->getVerificationCode($brokerId, $token, $this->session->getId());
+    }
+
+    /**
+     * Assert that the token isn't already attached to a different session.
+     */
+    protected function assertNotAttached(string $brokerId, string $token): void
+    {
+        $key = $this->getCacheKey($brokerId, $token);
+        $attached = $this->cache->get($key);
+
+        if ($attached !== null && $attached !== $this->session->getId()) {
+            throw new BrokerException("Token is already attached");
+        }
     }
 
     /**
