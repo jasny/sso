@@ -1,0 +1,4 @@
+actor: DemoTester
+modules:
+    enabled:
+        - \Helper\Demo

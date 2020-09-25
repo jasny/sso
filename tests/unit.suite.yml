@@ -1,0 +1,8 @@
+actor: UnitTester
+modules:
+    enabled:
+        - \Helper\Unit
+coverage:
+    enabled: true
+    include:
+        - src/*

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Jasny\SSO\Server;
 
 /**
- * Interact with session using $_SESSION and PHP's session_* functions.
+ * Interact with the global session using PHP's session_* functions.
  *
  * @codeCoverageIgnore
  */
@@ -58,22 +58,5 @@ class GlobalSession implements SessionInterface
     public function isActive(): bool
     {
         return session_status() === PHP_SESSION_ACTIVE;
-    }
-
-
-    /**
-     * @inheritDoc
-     */
-    public function get(string $key)
-    {
-        return $_SESSION[$key] ?? null;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function set(string $key, $value): void
-    {
-        $_SESSION[$key] = $value;
     }
 }

@@ -28,12 +28,18 @@
         "codeception/module-phpbrowser": "^1.0",
         "codeception/module-rest": "^1.2",
         "desarrolla2/cache": "^3.0",
+        "jasny/http-message": "^1.3",
         "jasny/php-code-quality": "^2.6.0",
         "yubb/loggy": "^2.1"
     },
     "autoload": {
         "psr-4": {
             "Jasny\\SSO\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Jasny\\Tests\\SSO\\": "tests/unit/"
         }
     },
     "scripts": {

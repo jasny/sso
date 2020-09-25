@@ -86,37 +86,25 @@ class Server
     public function startBrokerSession(?ServerRequestInterface $request = null): void
     {
         if ($this->session->isActive()) {
-            throw new ServerException("Session is already started", 400);
+            throw new ServerException("Session is already started", 500);
         }
 
         $bearer = $this->getBearerToken($request);
 
-        if ($bearer === null) {
-            throw new BrokerException("Broker didn't use bearer authentication", 401);
-        }
-
         [$brokerId, $token, $checksum] = $this->parseBearer($bearer);
 
-        try {
-            $sessionId = $this->cache->get('SSO-' . $brokerId . '-' . $token);
-        } catch (\Exception $exception) {
-            $this->logger->error(
-                "Failed to get session id: " . $exception->getMessage(),
-                ['broker' => $brokerId, 'token' => $token]
-            );
-            throw new ServerException("Failed to get session id", 500, $exception);
-        }
+        $sessionId = $this->cache->get($this->getCacheKey($brokerId, $token));
 
-        if (!$sessionId) {
+        if ($sessionId === null) {
             $this->logger->warning(
                 "Bearer token isn't attached to a client session",
                 ['broker' => $brokerId, 'token' => $token]
             );
-            throw new BrokerException("Bearer token isn't attached to a client session", 403);
+            throw new BrokerException("Invalid or expired bearer token", 403);
         }
 
-        $command = 'bearer:' . $this->getVerificationCode($brokerId, $token, $sessionId);
-        $this->validateChecksum($checksum, $command, $brokerId, $token);
+        $code = $this->getVerificationCode($brokerId, $token, $sessionId);
+        $this->validateChecksum($checksum, 'bearer', $brokerId, $token, $code);
 
         $this->session->start($sessionId);
 
@@ -129,15 +117,21 @@ class Server
     /**
      * Get bearer token from Authorization header.
      */
-    protected function getBearerToken(?ServerRequestInterface $request = null): ?string
+    protected function getBearerToken(?ServerRequestInterface $request = null): string
     {
         $authorization = $request === null
-            ? ($_SERVER['HTTP_AUTHORIZATION'] ?? '')
+            ? ($_SERVER['HTTP_AUTHORIZATION'] ?? '') // @codeCoverageIgnore
             : $request->getHeaderLine('Authorization');
 
-        return strpos($authorization, 'Bearer') === 0
-            ? substr($authorization, 7)
-            : null;
+        [$type, $token] = explode(' ', $authorization, 2) + ['', ''];
+
+        if ($type !== 'Bearer') {
+            $this->logger->warning("Broker didn't use bearer authentication: "
+                . ($authorization === '' ? "No 'Authorization' header" : "$type authorization used"));
+            throw new BrokerException("Broker didn't use bearer authentication", 401);
+        }
+
+        return $token;
     }
 
     /**
@@ -152,7 +146,7 @@ class Server
 
         if (!(bool)preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $bearer, $matches)) {
             $this->logger->warning("Invalid bearer token", ['bearer' => $bearer]);
-            throw new BrokerException("Invalid bearer token");
+            throw new BrokerException("Invalid or expired bearer token", 403);
         }
 
         return array_slice($matches, 1);
@@ -190,19 +184,11 @@ class Server
      */
     protected function generateChecksum(string $command, string $brokerId, string $token): string
     {
-        try {
-            $secret = $this->getBrokerSecret($brokerId);
-        } catch (\Exception $exception) {
-            $this->logger->warning(
-                "Failed to get broker secret: " . $exception->getMessage(),
-                ['broker' => $brokerId, 'token' => $token]
-            );
-            throw new ServerException("Failed to get broker secret", 500, $exception);
-        }
+        $secret = $this->getBrokerSecret($brokerId);
 
         if ($secret === null) {
-            $this->logger->warning("Unknown broker id", ['broker' => $brokerId, 'token' => $token]);
-            throw new BrokerException("Unknown broker id", 400);
+            $this->logger->warning("Unknown broker", ['broker' => $brokerId, 'token' => $token]);
+            throw new BrokerException("Broker is unknown or disabled", 403);
         }
 
         return base_convert(hash_hmac('sha256', $command . ':' . $token, $secret), 16, 36);
@@ -213,16 +199,22 @@ class Server
      *
      * @throws BrokerException
      */
-    protected function validateChecksum(string $checksum, string $command, string $brokerId, string $token): void
-    {
-        $expected = $this->generateChecksum($command, $brokerId, $token);
+    protected function validateChecksum(
+        string $checksum,
+        string $command,
+        string $brokerId,
+        string $token,
+        ?string $code = null
+    ): void {
+        $expected = $this->generateChecksum($command . ($code !== null ? ":$code" : ''), $brokerId, $token);
 
         if ($checksum !== $expected) {
             $this->logger->warning(
                 "Invalid $command checksum",
                 ['expected' => $expected, 'received' => $checksum, 'broker' => $brokerId, 'token' => $token]
+                    + ($code !== null ? ['verification_code' => $code] : [])
             );
-            throw new BrokerException("Invalid checksum", 400);
+            throw new BrokerException("Invalid or expired bearer token", 403);
         }
     }
 
@@ -233,15 +225,15 @@ class Server
      */
     public function validateDomain(string $type, string $url, string $brokerId, ?string $token = null): void
     {
-        $domains = ($this->getBrokerInfo)($brokerId)['domains'] ?? null;
+        $domains = ($this->getBrokerInfo)($brokerId)['domains'] ?? [];
         $host = parse_url($url, PHP_URL_HOST);
 
         if (!in_array($host, $domains, true)) {
             $this->logger->warning(
                 "Domain of $type is not allowed for broker",
-                [$type => $url, 'domain' => $host, 'broker' => $brokerId, 'token' => $token]
+                [$type => $url, 'broker' => $brokerId] + ($token !== null ? ['token' => $token] : [])
             );
-            throw new BrokerException("Domain of $type is not allowed", 400);
+            throw new BrokerException("Domain of $type is not allowed", 403);
         }
     }
 
@@ -268,7 +260,7 @@ class Server
         $info = ['broker' => $brokerId, 'token' => $token, 'session' => $this->session->getId()];
 
         if (!$cached) {
-            $this->logger->error("Failed to attach attach bearer token to session id due to cache issue", $info);
+            $this->logger->error("Failed to attach bearer token to session id due to cache issue", $info);
             throw new ServerException("Failed to attach bearer token to session id");
         }
 
@@ -286,6 +278,12 @@ class Server
         $attached = $this->cache->get($key);
 
         if ($attached !== null && $attached !== $this->session->getId()) {
+            $this->logger->warning("Token is already attached", [
+                'broker' => $brokerId,
+                'token' => $token,
+                'attached_to' => $attached,
+                'session' => $this->session->getId()
+            ]);
             throw new BrokerException("Token is already attached");
         }
     }
@@ -317,7 +315,7 @@ class Server
 
         $returnUrl = $this->getQueryParam($request, 'return_url', false);
         if ($returnUrl !== null) {
-            $this->validateDomain('return_url', $returnUrl, $brokerId);
+            $this->validateDomain('return_url', $returnUrl, $brokerId, $token);
         }
 
         return ['broker' => $brokerId, 'token' => $token];
@@ -333,7 +331,9 @@ class Server
      */
     protected function getQueryParam(?ServerRequestInterface $request, string $key, bool $required = false)
     {
-        $params = $request === null ? $_GET : $request->getQueryParams();
+        $params = $request === null
+            ? $_GET // @codeCoverageIgnore
+            : $request->getQueryParams();
 
         if ($required && !isset($params[$key])) {
             throw new BrokerException("Missing '$key' query parameter", 400);
@@ -352,7 +352,7 @@ class Server
     protected function getHeader(?ServerRequestInterface $request, string $key): string
     {
         return $request === null
-            ? ($_SERVER['HTTP_' . str_replace('-', '_', strtoupper($key))] ?? '')
+            ? ($_SERVER['HTTP_' . str_replace('-', '_', strtoupper($key))] ?? '') // @codeCoverageIgnore
             : $request->getHeaderLine($key);
     }
 }

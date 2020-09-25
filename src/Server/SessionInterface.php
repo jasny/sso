@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Jasny\SSO\Server;
 
 /**
- * Interface to interact with sessions.
+ * Interface to start a session.
  */
 interface SessionInterface
 {
@@ -27,21 +27,4 @@ interface SessionInterface
      * @see session_status()
      */
     public function isActive(): bool;
-
-
-    /**
-     * Get session data.
-     *
-     * @param string $key
-     * @return mixed
-     */
-    public function get(string $key);
-
-    /**
-     * Set session data.
-     *
-     * @param string $key
-     * @param mixed  $value
-     */
-    public function set(string $key, $value): void;
 }
