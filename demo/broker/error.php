@@ -43,7 +43,7 @@ $errorDetails = isset($exception) && $exception->getPrevious() !== null
                 <?php endif ?>
             </div>
             
-            <a href="/?reattach=1">Try again</a>
+            <a href="/">Try again</a>
         </div>
     </body>
 </html>

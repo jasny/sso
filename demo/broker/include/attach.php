@@ -24,15 +24,14 @@ if (isset($_GET['sso_verify'])) {
     $broker->verify($_GET['sso_verify']);
 
     $url = (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
-    $redirectUrl = preg_replace('/sso_verify=\w+&|[\?&]sso_verify=\w+$/', '', $url);
+    $redirectUrl = preg_replace('/sso_verify=\w+&|[?&]sso_verify=\w+$/', '', $url);
     redirect($redirectUrl);
     exit();
 }
 
 // Attach through redirect if the client isn't attached yet.
-if (!$broker->isAttached() || ($_GET['reattach'] ?? false)) {
-    $returnUrl = (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] .
-        preg_replace('/reattach=1&?/', '', $_SERVER['REQUEST_URI']);
+if (!$broker->isAttached()) {
+    $returnUrl = (!empty($_SERVER['HTTPS']) ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
     $attachUrl = $broker->getAttachUrl(['return_url' => $returnUrl]);
 
     redirect($attachUrl);

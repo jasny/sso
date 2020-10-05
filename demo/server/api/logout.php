@@ -20,4 +20,4 @@ require __DIR__ . '/../include/start_broker_session.php';
 unset($_SESSION['user']);
 
 // Done (no output)
-http_response_code(201);
+http_response_code(204);
