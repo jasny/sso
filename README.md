@@ -1,5 +1,13 @@
+![jasny-banner](https://user-images.githubusercontent.com/100821/62123924-4c501c80-b2c9-11e9-9677-2ebc21d9b713.png)
+
 Single Sign-On for PHP (Ajax compatible)
----
+========
+
+[![Build Status](https://travis-ci.com/jasny/sso.svg?branch=master)](https://travis-ci.com/jasny/sso)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/jasny/sso/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/jasny/sso/?branch=master)
+[![Code Coverage](https://scrutinizer-ci.com/g/jasny/sso/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/jasny/sso/?branch=master)
+[![Packagist Stable Version](https://img.shields.io/packagist/v/jasny/sso.svg)](https://packagist.org/packages/jasny/sso)
+[![Packagist License](https://img.shields.io/packagist/l/jasny/sso.svg)](https://packagist.org/packages/jasny/sso)
 
 Jasny SSO is a relatively simply and straightforward solution for single sign on (SSO).
 
