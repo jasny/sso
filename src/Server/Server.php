@@ -293,10 +293,10 @@ class Server
      */
     protected function processAttachRequest(?ServerRequestInterface $request): array
     {
-        $brokerId = $this->getQueryParam($request, 'broker', true);
-        $token = $this->getQueryParam($request, 'token', true);
+        $brokerId = $this->getRequiredQueryParam($request, 'broker');
+        $token = $this->getRequiredQueryParam($request, 'token');
+        $checksum = $this->getRequiredQueryParam($request, 'checksum');
 
-        $checksum = $this->getQueryParam($request, 'checksum', true);
         $this->validateChecksum($checksum, 'attach', $brokerId, $token);
 
         $origin = $this->getHeader($request, 'Origin');
@@ -309,7 +309,7 @@ class Server
             $this->validateDomain('referer', $referer, $brokerId, $token);
         }
 
-        $returnUrl = $this->getQueryParam($request, 'return_url', false);
+        $returnUrl = $this->getQueryParam($request, 'return_url');
         if ($returnUrl !== null) {
             $this->validateDomain('return_url', $returnUrl, $brokerId, $token);
         }
@@ -319,23 +319,30 @@ class Server
 
     /**
      * Get query parameter from PSR-7 request or $_GET.
-     *
-     * @param ServerRequestInterface $request
-     * @param string                 $key
-     * @param bool                   $required
-     * @return mixed
      */
-    protected function getQueryParam(?ServerRequestInterface $request, string $key, bool $required = false)
+    protected function getQueryParam(?ServerRequestInterface $request, string $key): ?string
     {
         $params = $request === null
             ? $_GET // @codeCoverageIgnore
             : $request->getQueryParams();
 
-        if ($required && !isset($params[$key])) {
+        return $params[$key] ?? null;
+    }
+
+    /**
+     * Get required query parameter from PSR-7 request or $_GET.
+     *
+     * @throws BrokerException if query parameter isn't set
+     */
+    protected function getRequiredQueryParam(?ServerRequestInterface $request, string $key): string
+    {
+        $value = $this->getQueryParam($request, $key);
+
+        if ($value === null) {
             throw new BrokerException("Missing '$key' query parameter", 400);
         }
 
-        return $params[$key] ?? null;
+        return $value;
     }
 
     /**

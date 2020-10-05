@@ -294,7 +294,7 @@ class Broker
      * @param string                     $path    Relative path
      * @param array<string,mixed>|string $data    Query or post parameters
      * @return mixed
-     * @throws NotAttachedException
+     * @throws RequestException
      */
     public function request(string $method, string $path, $data = '')
     {
@@ -304,14 +304,28 @@ class Broker
             'Authorization: Bearer ' . $this->getBearerToken()
         ];
 
-        ['httpCode' => $httpCode, 'contentType' => $contentTypeHeader, 'body' => $body] =
+        ['httpCode' => $httpCode, 'contentType' => $contentType, 'body' => $body] =
             $this->getCurl()->request($method, $url, $headers, $method === 'POST' ? $data : '');
 
-        [$contentType] = explode(';', $contentTypeHeader, 2);
+        return $this->handleResponse($httpCode, $contentType, $body);
+    }
 
+    /**
+     * Handle the response of the cURL request.
+     *
+     * @param int    $httpCode  HTTP status code
+     * @param string $ctHeader  Content-Type header
+     * @param string $body      Response body
+     * @return mixed
+     * @throws RequestException
+     */
+    protected function handleResponse(int $httpCode, string $ctHeader, string $body)
+    {
         if ($httpCode === 204) {
             return null;
         }
+
+        [$contentType] = explode(';', $ctHeader, 2);
 
         if ($contentType != 'application/json') {
             throw new RequestException(
