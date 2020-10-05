@@ -15,12 +15,20 @@ interface SessionInterface
     public function getId(): string;
 
     /**
-     * Start the session. Optionally with a specific session id.
+     * Start a new session.
      * @see session_start()
      *
      * @throws ServerException if session can't be started.
      */
-    public function start(?string $id = null): void;
+    public function start(): void;
+
+    /**
+     * Resume an existing session.
+     *
+     * @throws ServerException if session can't be started.
+     * @throws BrokerException if session is expired
+     */
+    public function resume(string $id): void;
 
     /**
      * Check if a session is active. (status PHP_SESSION_ACTIVE)

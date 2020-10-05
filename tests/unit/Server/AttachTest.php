@@ -12,6 +12,7 @@ use Jasny\SSO\Server\BrokerException;
 use Jasny\SSO\Server\Server;
 use Jasny\SSO\Server\ServerException;
 use Jasny\SSO\Server\SessionInterface;
+use Jasny\Tests\SSO\TokenTrait;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
 use function Jasny\array_without;
@@ -23,7 +24,7 @@ use function Jasny\array_without;
  */
 class AttachTest extends \Codeception\Test\Unit
 {
-    use ServerTestTrait;
+    use TokenTrait;
     use CallbackMockTrait;
     use SafeMocksTrait;
 
@@ -55,7 +56,6 @@ class AttachTest extends \Codeception\Test\Unit
             ->withSession($session)
             ->withLogger($logger);
 
-        $session->expects($this->once())->method('isActive')->willReturn(false);
         $session->expects($this->once())->method('start')->id('start');
         $session->expects($this->any())->method('getId')->after('start')->willReturn('abc123');
 
@@ -118,7 +118,6 @@ class AttachTest extends \Codeception\Test\Unit
             ->withSession($session)
             ->withLogger($logger);
 
-        $session->expects($this->any())->method('isActive')->willReturn(false);
         $session->expects($this->never())->method('start');
 
         $cache->expects($this->never())->method('get');
@@ -170,7 +169,6 @@ class AttachTest extends \Codeception\Test\Unit
             ->withSession($session)
             ->withLogger($logger);
 
-        $session->expects($this->any())->method('isActive')->willReturn(false);
         $session->expects($this->never())->method('start');
 
         $cache->expects($this->never())->method('get');
@@ -220,7 +218,7 @@ class AttachTest extends \Codeception\Test\Unit
             );
 
         $this->expectException(BrokerException::class);
-        $this->expectExceptionMessage("Invalid checksum");
+        $this->expectExceptionMessage("Invalid attach checksum");
 
         $server->attach($request);
     }
@@ -279,7 +277,6 @@ class AttachTest extends \Codeception\Test\Unit
             ->withSession($session)
             ->withLogger($logger);
 
-        $session->expects($this->once())->method('isActive')->willReturn(false);
         $session->expects($this->once())->method('start')->id('start');
         $session->expects($this->any())->method('getId')->after('start')->willReturn('abc123');
 
@@ -326,7 +323,6 @@ class AttachTest extends \Codeception\Test\Unit
         $server = (new Server($callback, $cache))
             ->withSession($session);
 
-        $session->expects($this->once())->method('isActive')->willReturn(false);
         $session->expects($this->once())->method('start')->id('start');
         $session->expects($this->any())->method('getId')->after('start')->willReturn('abc123');
 
@@ -366,7 +362,6 @@ class AttachTest extends \Codeception\Test\Unit
             ->withSession($session)
             ->withLogger($logger);
 
-        $session->expects($this->once())->method('isActive')->willReturn(false);
         $session->expects($this->once())->method('start')->id('start');
         $session->expects($this->any())->method('getId')->after('start')->willReturn('abc123');
 

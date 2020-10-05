@@ -25,9 +25,19 @@ $ssoServer = (new Server(
 try {
     $ssoServer->startBrokerSession();
 } catch (SsoException $exception) {
-    http_response_code($exception->getCode());
+    $code = $exception->getCode();
+    $message = $code === 403
+        ? "Invalid or expired bearer token"
+        : $exception->getMessage();
+
+    http_response_code($code);
+    if ($code === 401) {
+        header('WWW-Authenticate: Bearer');
+    }
+
     header('Content-Type: application/json');
-    echo json_encode(['error' => $exception->getMessage()]);
+    echo json_encode(['error' => $message]);
+
     exit();
 }
 

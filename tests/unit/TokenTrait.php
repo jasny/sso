@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Jasny\Tests\SSO\Server;
+namespace Jasny\Tests\SSO;
 
 /**
  * Traits for server tests.
  */
-trait ServerTestTrait
+trait TokenTrait
 {
     protected function generateChecksum(string $command, string $secret, string $token): string
     {

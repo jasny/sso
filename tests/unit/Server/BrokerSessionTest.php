@@ -12,6 +12,7 @@ use Jasny\SSO\Server\BrokerException;
 use Jasny\SSO\Server\Server;
 use Jasny\SSO\Server\ServerException;
 use Jasny\SSO\Server\SessionInterface;
+use Jasny\Tests\SSO\TokenTrait;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
 
@@ -22,7 +23,7 @@ use Psr\SimpleCache\CacheInterface;
  */
 class BrokerSessionTest extends \Codeception\Test\Unit
 {
-    use ServerTestTrait;
+    use TokenTrait;
     use CallbackMockTrait;
     use SafeMocksTrait;
 
@@ -49,7 +50,7 @@ class BrokerSessionTest extends \Codeception\Test\Unit
             ->willReturn('abc123');
 
         $session->expects($this->once())->method('isActive')->willReturn(false);
-        $session->expects($this->once())->method('start')->with('abc123');
+        $session->expects($this->once())->method('resume')->with('abc123');
 
         $logger->expects($this->once())->method('debug')
             ->with(
@@ -163,13 +164,14 @@ class BrokerSessionTest extends \Codeception\Test\Unit
 
         $session->expects($this->once())->method('isActive')->willReturn(false);
         $session->expects($this->never())->method('start');
+        $session->expects($this->never())->method('resume');
 
         $logger->expects($this->once())->method('warning')
             ->with("Invalid bearer token", ['bearer' => '000000']);
 
         $this->expectException(BrokerException::class);
         $this->expectExceptionCode(403);
-        $this->expectExceptionMessage("Invalid or expired bearer token");
+        $this->expectExceptionMessage("Invalid bearer token");
 
         $server->startBrokerSession($request);
     }
@@ -214,7 +216,7 @@ class BrokerSessionTest extends \Codeception\Test\Unit
 
         $this->expectException(BrokerException::class);
         $this->expectExceptionCode(403);
-        $this->expectExceptionMessage("Invalid or expired bearer token");
+        $this->expectExceptionMessage("Invalid bearer checksum");
 
         $server->startBrokerSession($request);
     }
@@ -253,7 +255,7 @@ class BrokerSessionTest extends \Codeception\Test\Unit
 
         $this->expectException(BrokerException::class);
         $this->expectExceptionCode(403);
-        $this->expectExceptionMessage("Invalid or expired bearer token");
+        $this->expectExceptionMessage("Bearer token isn't attached to a client session");
 
         $server->startBrokerSession($request);
     }
@@ -288,6 +290,7 @@ class BrokerSessionTest extends \Codeception\Test\Unit
             ->with("Unknown broker", ['broker' => 'foo', 'token' => '123456']);
 
         $this->expectException(BrokerException::class);
+        $this->expectExceptionCode(403);
         $this->expectExceptionMessage("Broker is unknown or disabled");
 
         $server->startBrokerSession($request);

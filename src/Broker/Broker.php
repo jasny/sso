@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Jasny\SSO\Broker;
 
+use Jasny\Immutable;
+
 /**
  * Single sign-on broker.
  *
@@ -12,6 +14,8 @@ namespace Jasny\SSO\Broker;
  */
 class Broker
 {
+    use Immutable\With;
+
     /**
      * URL of SSO server.
      * @var string
@@ -53,6 +57,11 @@ class Broker
     protected $state;
 
     /**
+     * @var Curl
+     */
+    protected $curl;
+
+    /**
      * Class constructor
      *
      * @param string $url     Url of SSO server
@@ -66,7 +75,7 @@ class Broker
         }
 
         if ((bool)preg_match('/\W/', $broker)) {
-            throw new \InvalidArgumentException("The broker id must be alphanumeric");
+            throw new \InvalidArgumentException("Invalid broker id '$broker': must be alphanumeric");
         }
 
         $this->url = $url;
@@ -84,14 +93,30 @@ class Broker
      */
     public function withTokenIn(\ArrayAccess $handler): self
     {
-        if ($this->state === $handler) {
-            return $this;
+        return $this->withProperty('state', $handler);
+    }
+
+    /**
+     * Set a custom wrapper for cURL.
+     *
+     * @param Curl $curl
+     * @return static
+     */
+    public function withCurl(Curl $curl): self
+    {
+        return $this->withProperty('curl', $curl);
+    }
+
+    /**
+     * Get Wrapped cURL.
+     */
+    protected function getCurl(): Curl
+    {
+        if (!isset($this->curl)) {
+            $this->curl = new Curl(); // @codeCoverageIgnore
         }
 
-        $clone = clone $this;
-        $clone->state = $handler;
-
-        return $clone;
+        return $this->curl;
     }
 
     /**
@@ -111,8 +136,8 @@ class Broker
             return;
         }
 
-        $this->token = $this->state[$this->getCookieName('token')];
-        $this->verificationCode = $this->state[$this->getCookieName('verify')];
+        $this->token = $this->state[$this->getCookieName('token')] ?? null;
+        $this->verificationCode = $this->state[$this->getCookieName('verify')] ?? null;
         $this->initialized = true;
     }
 
@@ -152,7 +177,7 @@ class Broker
      *
      * @throws NotAttachedException
      */
-    public function getBearerToken(): ?string
+    public function getBearerToken(): string
     {
         $token = $this->getToken();
         $verificationCode = $this->getVerificationCode();
@@ -168,12 +193,8 @@ class Broker
     /**
      * Generate session token.
      */
-    public function generateToken(): void
+    protected function generateToken(): void
     {
-        if ($this->getToken() !== null) {
-            return;
-        }
-
         $this->token = base_convert(bin2hex(random_bytes(32)), 16, 36);
         $this->state[$this->getCookieName('token')] = $this->token;
     }
@@ -206,7 +227,9 @@ class Broker
      */
     public function getAttachUrl(array $params = []): string
     {
-        $this->generateToken();
+        if ($this->getToken() === null) {
+            $this->generateToken();
+        }
 
         $data = [
             'broker' => $this->broker,
@@ -275,67 +298,37 @@ class Broker
      */
     public function request(string $method, string $path, $data = '')
     {
-        $bearer = $this->getBearerToken();
         $url = $this->getRequestUrl($path, $method === 'POST' ? '' : $data);
-
-        $ch = curl_init($url);
-
-        if ($ch === false) {
-            throw new \RuntimeException("Failed to initialize a cURL session");
-        }
-
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        $headers = [
             'Accept: application/json',
-            'Authorization: Bearer '. $bearer
-        ]);
+            'Authorization: Bearer ' . $this->getBearerToken()
+        ];
 
-        if ($method === 'POST' && ($data !== [] && $data !== '')) {
-            $post = is_string($data) ? $data : http_build_query($data);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
-        }
+        ['httpCode' => $httpCode, 'contentType' => $contentTypeHeader, 'body' => $body] =
+            $this->getCurl()->request($method, $url, $headers, $method === 'POST' ? $data : '');
 
-        $response = (string)curl_exec($ch);
+        [$contentType] = explode(';', $contentTypeHeader, 2);
 
-        return $this->handleResponse($ch, $response);
-    }
-
-    /**
-     * Handle response of Curl request.
-     *
-     * @param resource $ch        Curl handler
-     * @param string   $response
-     * @return mixed
-     */
-    protected function handleResponse($ch, string $response)
-    {
-        if (curl_errno($ch) != 0) {
-            throw new RequestException('Server request failed: ' . curl_error($ch));
-        }
-
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        list($contentType) = explode(';', curl_getinfo($ch, CURLINFO_CONTENT_TYPE));
-
-        if ($httpCode === 201 || $httpCode === 401) {
+        if ($httpCode === 204) {
             return null;
         }
 
         if ($contentType != 'application/json') {
             throw new RequestException(
                 "Expected 'application/json' response, got '$contentType'",
-                0,
-                new RequestException($response, $httpCode)
+                500,
+                new RequestException($body, $httpCode)
             );
         }
 
-        $data = json_decode($response, true);
+        try {
+            $data = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new RequestException("Invalid JSON response from server", 500, $exception);
+        }
 
-        if ($httpCode === 403) {
-            $this->clearToken();
-            throw new NotAttachedException($data['error'] ?? $response, $httpCode);
-        } elseif ($httpCode >= 400) {
-            throw new RequestException($data['error'] ?? $response, $httpCode);
+        if ($httpCode >= 400) {
+            throw new RequestException($data['error'] ?? $body, $httpCode);
         }
 
         return $data;

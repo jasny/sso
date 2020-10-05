@@ -38,17 +38,37 @@ class GlobalSession implements SessionInterface
     /**
      * @inheritDoc
      */
-    public function start(?string $id = null): void
+    public function start(): void
     {
-        if ($id !== null) {
-            session_id($id);
+        $started = session_status() !== PHP_SESSION_ACTIVE
+            ? session_start($this->options)
+            : true;
+
+        if (!$started) {
+            $err = error_get_last() ?? ['message' => 'Failed to start session'];
+            throw new ServerException($err['message'], 500);
         }
 
+        // Session shouldn't be empty when resumed.
+        $_SESSION['_sso_init'] = 1;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function resume(string $id): void
+    {
+        session_id($id);
         $started = session_start($this->options);
 
         if (!$started) {
             $err = error_get_last() ?? ['message' => 'Failed to start session'];
             throw new ServerException($err['message'], 500);
+        }
+
+        if ($_SESSION === []) {
+            session_abort();
+            throw new BrokerException("Session has expired. Client must attach with new token.", 401);
         }
     }
 

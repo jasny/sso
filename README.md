@@ -227,14 +227,25 @@ if (isset($_GET['sso_verify'])) {
 
 ### API requests
 
-Once attached, the broker is able to do API requests on behalf of the client.
+Once attached, the broker is able to do API requests on behalf of the client. This can be done by
+
+- using the broker `request()` method, or by
+- using any HTTP client like Guzzle
+
+#### Broker request
 
 ```
+// Post to modify the user info
+$broker->request('POST', '/login', $credentials);
+
+// Get user info
 $user = $broker->request('GET', '/user');
 ```
 
 The `request()` method uses Curl to send HTTP requests, adding the bearer token for authentication. It expects a JSON
 response and will automatically decode it.
+
+#### HTTP library (Guzzle)
 
 To use a library like [Guzzle](http://docs.guzzlephp.org/) or [Httplug](http://httplug.io/), get the bearer token using
 `getBearerToken()` and set the `Authorization` header

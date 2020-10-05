@@ -100,13 +100,13 @@ class Server
                 "Bearer token isn't attached to a client session",
                 ['broker' => $brokerId, 'token' => $token]
             );
-            throw new BrokerException("Invalid or expired bearer token", 403);
+            throw new BrokerException("Bearer token isn't attached to a client session", 403);
         }
 
         $code = $this->getVerificationCode($brokerId, $token, $sessionId);
         $this->validateChecksum($checksum, 'bearer', $brokerId, $token, $code);
 
-        $this->session->start($sessionId);
+        $this->session->resume($sessionId);
 
         $this->logger->debug(
             "Broker request with session",
@@ -146,7 +146,7 @@ class Server
 
         if (!(bool)preg_match('/^SSO-(\w*+)-(\w*+)-([a-z0-9]*+)$/', $bearer, $matches)) {
             $this->logger->warning("Invalid bearer token", ['bearer' => $bearer]);
-            throw new BrokerException("Invalid or expired bearer token", 403);
+            throw new BrokerException("Invalid bearer token", 403);
         }
 
         return array_slice($matches, 1);
@@ -214,14 +214,12 @@ class Server
                 ['expected' => $expected, 'received' => $checksum, 'broker' => $brokerId, 'token' => $token]
                     + ($code !== null ? ['verification_code' => $code] : [])
             );
-            throw new BrokerException("Invalid or expired bearer token", 403);
+            throw new BrokerException("Invalid $command checksum", 403);
         }
     }
 
     /**
-     * Assert that the URL has a domain that is allowed for the broker.
-     *
-     * @throws BrokerException
+     * Validate that the URL has a domain that is allowed for the broker.
      */
     public function validateDomain(string $type, string $url, string $brokerId, ?string $token = null): void
     {
@@ -233,7 +231,7 @@ class Server
                 "Domain of $type is not allowed for broker",
                 [$type => $url, 'broker' => $brokerId] + ($token !== null ? ['token' => $token] : [])
             );
-            throw new BrokerException("Domain of $type is not allowed", 403);
+            throw new BrokerException("Domain of $type is not allowed", 400);
         }
     }
 
@@ -248,9 +246,7 @@ class Server
     {
         ['broker' => $brokerId, 'token' => $token] = $this->processAttachRequest($request);
 
-        if (!$this->session->isActive()) {
-            $this->session->start();
-        }
+        $this->session->start();
 
         $this->assertNotAttached($brokerId, $token);
 
@@ -261,7 +257,7 @@ class Server
 
         if (!$cached) {
             $this->logger->error("Failed to attach bearer token to session id due to cache issue", $info);
-            throw new ServerException("Failed to attach bearer token to session id");
+            throw new ServerException("Failed to attach bearer token to session id", 500);
         }
 
         $this->logger->info("Attached broker token to session", $info);
@@ -284,7 +280,7 @@ class Server
                 'attached_to' => $attached,
                 'session' => $this->session->getId()
             ]);
-            throw new BrokerException("Token is already attached");
+            throw new BrokerException("Token is already attached", 400);
         }
     }
 
