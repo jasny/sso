@@ -52,7 +52,7 @@ class Broker
     protected $verificationCode;
 
     /**
-     * @var \ArrayAccess
+     * @var \ArrayAccess<string,mixed>
      */
     protected $state;
 
@@ -88,7 +88,7 @@ class Broker
     /**
      * Get a copy with a different handler for the user state (like cookie or session).
      *
-     * @param \ArrayAccess $handler
+     * @param \ArrayAccess<string,mixed> $handler
      * @return static
      */
     public function withTokenIn(\ArrayAccess $handler): self

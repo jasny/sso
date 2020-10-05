@@ -44,8 +44,8 @@ class Server
     /**
      * Class constructor.
      *
-     * @param callable(string):?array $getBrokerInfo
-     * @param CacheInterface          $cache
+     * @phpstan-param callable(string):?array{secret:string,domains:string[]} $getBrokerInfo
+     * @phpstan-param CacheInterface                                          $cache
      */
     public function __construct(callable $getBrokerInfo, CacheInterface $cache)
     {

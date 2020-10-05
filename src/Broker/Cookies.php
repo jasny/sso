@@ -7,6 +7,7 @@ namespace Jasny\SSO\Broker;
 /**
  * Use global $_COOKIE and setcookie() to persist the client token.
  *
+ * @implements \ArrayAccess<string,mixed>
  * @codeCoverageIgnore
  */
 class Cookies implements \ArrayAccess

@@ -7,6 +7,7 @@ namespace Jasny\SSO\Broker;
 /**
  * Use global $_SESSION to persist the client token.
  *
+ * @implements \ArrayAccess<string,mixed>
  * @codeCoverageIgnore
  */
 class Session implements \ArrayAccess
