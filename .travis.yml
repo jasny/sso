@@ -1,7 +1,6 @@
 language: php
 
 php:
-  - 7.2
   - 7.3
   - 7.4
   - nightly
@@ -30,15 +29,14 @@ install:
 
 before_script: |
   if (php -m | grep -q -i xdebug); then
-    export PHPUNIT_FLAGS="--coverage-clover cache/logs/clover.xml"
+    export COVERAGE_FLAGS="--coverage --coverage-xml"
   else
-    export PHPUNIT_FLAGS="--no-coverage"
+    export COVERAGE_FLAGS=""
   fi
 
 script:
-  - vendor/bin/phpunit $PHPUNIT_FLAGS
+  - vendor/bin/codecept run $COVERAGE_FLAGS
 
 after_script:
-  - test "$PHPUNIT_FLAGS" == "--no-coverage" || vendor/bin/infection --only-covered --no-progress --no-interaction --threads=4
-  - test "$PHPUNIT_FLAGS" == "--no-coverage" || php "$HOME/ocular.phar" code-coverage:upload --format=php-clover cache/logs/clover.xml
+  - test "$COVERAGE_FLAGS" == "" || php "$HOME/ocular.phar" code-coverage:upload --format=php-clover tests/_output/coverage.xml
 
