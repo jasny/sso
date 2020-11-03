@@ -51,10 +51,18 @@ switch ($returnType) {
         break;
 
     case 'jsonp':
+        $callback = $_GET['callback'];
+        if (!preg_match('/^[a-z_]\w*$/i', $callback)) {
+            http_response_code(400);
+            header('Content-Type: text/plain');
+            echo "JSONP callback must be a valid js function name";
+            break;
+        }
+    
         header('Content-type: application/javascript');
         $data = json_encode($error ?? ['verify' => $verificationCode]);
         $responseCode = $error['code'] ?? 200;
-        echo $_REQUEST['callback'] . "($data, $responseCode);";
+        echo "{$callback}($data, $responseCode);";
         break;
 
     case 'redirect':
