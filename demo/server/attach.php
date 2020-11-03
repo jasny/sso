@@ -12,6 +12,12 @@ use Jasny\SSO\Server\ExceptionInterface as SSOException;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
+// Preflight for CORS
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+  http_response_code(200);
+  exit;
+}
+
 // Config contains the secret keys of the brokers for this demo.
 $config = require __DIR__ . '/include/config.php';
 
@@ -45,6 +51,7 @@ $returnType =
 
 switch ($returnType) {
     case 'json':
+        header('Access-Control-Allow-Origin: *');
         header('Content-type: application/json');
         http_response_code($error['code'] ?? 200);
         echo json_encode($error ?? ['verify' => $verificationCode]);
