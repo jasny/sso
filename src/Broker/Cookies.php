@@ -45,7 +45,7 @@ class Cookies implements \ArrayAccess
      */
     public function offsetSet($name, $value)
     {
-        $success = setcookie($name, $value, time() + $this->ttl, $this->domain, $this->path, $this->secure, true);
+        $success = setcookie($name, $value, time() + $this->ttl, $this->path, $this->domain, $this->secure, true);
 
         if (!$success) {
             throw new \RuntimeException("Failed to set cookie '$name'");
@@ -59,7 +59,7 @@ class Cookies implements \ArrayAccess
      */
     public function offsetUnset($name): void
     {
-        setcookie($name, '', 1, $this->domain, $this->path, $this->secure, true);
+        setcookie($name, '', 1, $this->path, $this->domain, $this->secure, true);
         unset($_COOKIE[$name]);
     }
 
