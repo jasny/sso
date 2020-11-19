@@ -64,11 +64,12 @@ class Broker
     /**
      * Class constructor
      *
-     * @param string $url     Url of SSO server
-     * @param string $broker  My identifier, given by SSO provider.
-     * @param string $secret  My secret word, given by SSO provider.
+     * @param string $url Url of SSO server
+     * @param string $broker My identifier, given by SSO provider.
+     * @param string $secret My secret word, given by SSO provider.
+     * @param array $cookieOptions Array of 4 possible cookie options (ttl, path, domain, secure)
      */
-    public function __construct(string $url, string $broker, string $secret)
+    public function __construct(string $url, string $broker, string $secret, array $cookieOptions = [])
     {
         if (!(bool)preg_match('~^https?://~', $url)) {
             throw new \InvalidArgumentException("Invalid SSO server URL '$url'");
@@ -82,7 +83,12 @@ class Broker
         $this->broker = $broker;
         $this->secret = $secret;
 
-        $this->state = new Cookies();
+        $ttl = $cookieOptions['ttl'] ?? 3600;
+        $path = $cookieOptions['path'] ?? '';
+        $domain = $cookieOptions['domain'] ?? '';
+        $secure = $cookieOptions['secure'] ?? false;
+
+        $this->state = new Cookies($ttl, $path, $domain, $secure);
     }
 
     /**
