@@ -224,7 +224,7 @@ if (!$broker->isAttached()) {
 
 ### Verify
 
-Upon verification the SSO Server will return a verification code (as query parameter of in the JSON response). The code
+Upon verification the SSO Server will return a verification code (as query parameter or in the JSON response). The code
 is used to calculate the checksum. The verification code prevents session hijacking using an attach link.
 
 ```php
