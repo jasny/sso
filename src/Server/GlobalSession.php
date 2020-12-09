@@ -24,7 +24,7 @@ class GlobalSession implements SessionInterface
      */
     public function __construct(array $options = [])
     {
-        $this->options = $options;
+        $this->options = $options + ['cookie_samesite' => 'None'];
     }
 
     /**
