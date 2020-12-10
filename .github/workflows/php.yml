@@ -14,13 +14,10 @@ jobs:
       matrix:
         include:
           - php: 7.3
-            composer: '--prefer-lowest'
-            desc: "Lowest versions"
-          - php: 7.3
           - php: 7.4
             coverage: '--coverage --coverage-xml'
           - php: 8.0
-    name: PHP ${{ matrix.php }} ${{ matrix.desc }}
+    name: PHP ${{ matrix.php }}
 
     steps:
     - uses: actions/checkout@v2
@@ -45,7 +42,7 @@ jobs:
 
     - name: Install dependencies
       if: steps.composer-cache.outputs.cache-hit != 'true'
-      run: composer update --prefer-dist --no-progress --no-suggest ${{ matrix.composer }}
+      run: composer update --prefer-dist --no-progress --no-suggest
 
     - name: Run Codeception
       run: vendor/bin/codecept run ${{ matrix.coverage }}
