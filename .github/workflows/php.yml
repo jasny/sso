@@ -32,7 +32,6 @@ jobs:
       run: composer validate
 
     - name: Install dependencies
-      if: steps.composer-cache.outputs.cache-hit != 'true'
       run: composer update --prefer-dist --no-progress --no-suggest
 
     - name: Run Codeception

@@ -30,7 +30,7 @@
         "desarrolla2/cache": "^3.0",
         "jasny/http-message": "^1.3",
         "jasny/php-code-quality": "^2.6.0",
-        "jasny/phpunit-extension": "^0.3.1",
+        "jasny/phpunit-extension": "^0.3.2",
         "yubb/loggy": "^2.1"
     },
     "autoload": {
