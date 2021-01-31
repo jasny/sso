@@ -101,8 +101,8 @@ $brokers = [
 ];
 
 $server = new Server(
-    fn(string $id): string => $brokers[$id] ?? null, // Unique secret and allowed domains for each broker.
-    new Cache()                                      // Any PSR-16 compatible cache
+    fn($id) => $brokers[$id] ?? null, // Unique secret and allowed domains for each broker.
+    new Cache()                       // Any PSR-16 compatible cache
 );
 ```
 
