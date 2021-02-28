@@ -1,0 +1,6 @@
+actor: DemoTester
+modules:
+    enabled:
+        - \Helper\Demo
+        - PhpBrowser:
+              url: 'http://localhost:8201'

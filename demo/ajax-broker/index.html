@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Single Sign-On Ajax demo</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery.growl@1.3.5/stylesheets/jquery.growl.min.css" />
+
+        <style>
+            .state {
+                display: none;
+            }
+            body.anonymous .state.anonymous,
+            body.authenticated .state.authenticated {
+                display: initial;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Single Sign-On Ajax demo</h1>
+
+            <form id="login-form" class="state anonymous">
+                <label for="inputUsername">Username</label>
+                <input type="text" name="username" id="inputUsername">
+
+                <label for="inputPassword">Password</label>
+                <input type="password" name="password" id="inputPassword">
+
+                <button type="submit">Login</button>
+            </form>
+
+            <div class="state authenticated">
+                <h3>Logged in</h3>
+                <dl id="user-info"></dl>
+                
+                <button id="logout">Logout</button>
+            </div>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery.growl@1.3.5/javascripts/jquery.growl.min.js"></script>
+
+        <script src="app.js"></script>
+    </body>
+</html>
+

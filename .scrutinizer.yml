@@ -1,0 +1,24 @@
+#language: php
+checks:
+  php: true
+filter:
+  excluded_paths:
+    - tests
+build:
+  nodes:
+    analysis:
+      environment:
+        php: 7.4
+        postgresql: false
+        redis: false
+        mongodb: false
+      tests:
+        override:
+            - phpcs-run src
+            -
+                command: vendor/bin/phpstan analyze --error-format=checkstyle | sed '/^\s*$/d' > phpstan-checkstyle.xml
+                analysis:
+                    file: phpstan-checkstyle.xml
+                    format: 'general-checkstyle'
+            - php-scrutinizer-run
+

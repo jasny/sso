@@ -1,0 +1,45 @@
+name: PHP
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: 7.3
+          - php: 7.4
+            coverage: '--coverage --coverage-xml'
+          - php: 8.0
+    name: PHP ${{ matrix.php }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+        coverage: xdebug
+
+    - name: Validate composer.json
+      run: composer validate
+
+    - name: Install dependencies
+      run: composer update --prefer-dist --no-progress --no-suggest
+
+    - name: Run Codeception
+      run: vendor/bin/codecept run ${{ matrix.coverage }}
+
+    - name: Upload coverage to Scrutinizer
+      if: ${{ matrix.coverage }}
+      run: >
+        wget https://scrutinizer-ci.com/ocular.phar -O "/tmp/ocular.phar" &&
+        php "/tmp/ocular.phar" code-coverage:upload --format=php-clover tests/_output/coverage.xml
+
