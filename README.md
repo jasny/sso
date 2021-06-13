@@ -30,7 +30,7 @@ secret and the token. This hash is used to create a link to the user's session. 
 redirects the client back to the broker.
 
 The broker can create the same link hash using the token (from the cookie), the broker id and the broker secret. When
-doing requests, it passes that has as session id.
+doing requests, it passes that hash as a session id.
 
 The server will notice that the session id is a link and use the linked session. As such, the broker and client are
 using the same session. When another broker joins in, it will also use the same session.
