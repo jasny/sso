@@ -314,12 +314,12 @@ class Broker
      * Handle the response of the cURL request.
      *
      * @param int    $httpCode  HTTP status code
-     * @param string $ctHeader  Content-Type header
+     * @param string|null $ctHeader  Content-Type header
      * @param string $body      Response body
      * @return mixed
      * @throws RequestException
      */
-    protected function handleResponse(int $httpCode, string $ctHeader, string $body)
+    protected function handleResponse(int $httpCode, $ctHeader, string $body)
     {
         if ($httpCode === 204) {
             return null;
