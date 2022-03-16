@@ -22,7 +22,7 @@ When using SSO, when can distinguish 3 parties:
 * Broker - The website which is visited
 * Server - The place that holds the user info and credentials
 
-The broker has an id and a secret. These are know to both the broker and server.
+The broker has an id and a secret. These are known to both the broker and server.
 
 When the client visits the broker, it creates a random token, which is stored in a cookie. The broker will then send
 the client to the server, passing along the broker's id and token. The server creates a hash using the broker id, broker
