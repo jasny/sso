@@ -242,7 +242,7 @@ Once attached, the broker is able to do API requests on behalf of the client. Th
 
 #### Broker request
 
-```
+```php
 // Post to modify the user info
 $broker->request('POST', '/login', $credentials);
 
@@ -288,7 +288,7 @@ _(The cookie can never be accessed by the browser.)_
 
 #### Session
 
-Alternative, you can store the SSO token in a PHP session for the broker by using `SessionState`.
+Alternative, you can store the SSO token in a PHP session for the broker by using `Session`.
 
 ```php
 use Jasny\SSO\Broker\{Broker,Session};
