@@ -1,6 +1,6 @@
 ![jasny-banner](https://user-images.githubusercontent.com/100821/62123924-4c501c80-b2c9-11e9-9677-2ebc21d9b713.png)
 
-Single Sign-On for PHP (Ajax compatible)
+Single Sign-On for PHP
 ========
 
 [![PHP](https://github.com/jasny/sso/workflows/PHP/badge.svg)](https://github.com/jasny/sso/actions)
