@@ -1,7 +1,5 @@
 <?php /** @noinspection PhpComposerExtensionStubsInspection */
 
-declare(strict_types=1);
-
 namespace Jasny\SSO\Broker;
 
 /**
@@ -26,14 +24,14 @@ class Curl
     /**
      * Send an HTTP request to the SSO server.
      *
-     * @param string                     $method   HTTP method: 'GET', 'POST', 'DELETE'
-     * @param string                     $url      Full URL
-     * @param string[]                   $headers  HTTP headers
-     * @param array<string,mixed>|string $data     Query or post parameters
+     * @param string $method HTTP method: 'GET', 'POST', 'DELETE'
+     * @param string $url Full URL
+     * @param string[] $headers HTTP headers
+     * @param array<string,mixed>|string $data Query or post parameters
      * @return array{httpCode:int,contentType:string,body:string}
      * @throws RequestException
      */
-    public function request(string $method, string $url, array $headers, $data = '')
+    public function request($method, $url, $headers, $data = '')
     {
         $ch = curl_init($url);
 
@@ -57,8 +55,16 @@ class Curl
         }
 
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?? 'text/html';
-
+        $contentType = $this->getContentType($ch);
         return ['httpCode' => $httpCode, 'contentType' => $contentType, 'body' => $responseBody];
+    }
+
+    private function getContentType($ch)
+    {
+        if (curl_getinfo($ch, CURLINFO_CONTENT_TYPE)) {
+            return curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        }
+
+        return 'text/html';
     }
 }

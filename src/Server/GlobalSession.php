@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Jasny\SSO\Server;
 
 /**
@@ -30,7 +28,7 @@ class GlobalSession implements SessionInterface
     /**
      * @inheritDoc
      */
-    public function getId(): string
+    public function getId()
     {
         return session_id();
     }
@@ -38,14 +36,12 @@ class GlobalSession implements SessionInterface
     /**
      * @inheritDoc
      */
-    public function start(): void
+    public function start()
     {
-        $started = session_status() !== PHP_SESSION_ACTIVE
-            ? session_start($this->options)
-            : true;
+        $started = !(session_status() !== PHP_SESSION_ACTIVE) || session_start($this->options);
 
         if (!$started) {
-            $err = error_get_last() ?? ['message' => 'Failed to start session'];
+            $err = error_get_last() ? error_get_last() : ['message' => 'Failed to start session'];
             throw new ServerException($err['message'], 500);
         }
 
@@ -56,13 +52,13 @@ class GlobalSession implements SessionInterface
     /**
      * @inheritDoc
      */
-    public function resume(string $id): void
+    public function resume($id)
     {
         session_id($id);
         $started = session_start($this->options);
 
         if (!$started) {
-            $err = error_get_last() ?? ['message' => 'Failed to start session'];
+            $err = error_get_last() ? error_get_last() : ['message' => 'Failed to start session'];
             throw new ServerException($err['message'], 500);
         }
 
@@ -75,7 +71,7 @@ class GlobalSession implements SessionInterface
     /**
      * @inheritDoc
      */
-    public function isActive(): bool
+    public function isActive()
     {
         return session_status() === PHP_SESSION_ACTIVE;
     }

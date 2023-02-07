@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Jasny\SSO\Broker;
 
 /**
@@ -15,7 +13,7 @@ class Session implements \ArrayAccess
     /**
      * @inheritDoc
      */
-    public function offsetSet($name, $value): void
+    public function offsetSet($name, $value)
     {
         $_SESSION[$name] = $value;
     }
@@ -23,7 +21,7 @@ class Session implements \ArrayAccess
     /**
      * @inheritDoc
      */
-    public function offsetUnset($name): void
+    public function offsetUnset($name)
     {
         unset($_SESSION[$name]);
     }
@@ -33,13 +31,13 @@ class Session implements \ArrayAccess
      */
     public function offsetGet($name)
     {
-        return $_SESSION[$name] ?? null;
+        return isset($_SESSION[$name]) ? $_SESSION[$name] : null;
     }
 
     /**
      * @inheritDoc
      */
-    public function offsetExists($name): bool
+    public function offsetExists($name)
     {
         return isset($_SESSION[$name]);
     }

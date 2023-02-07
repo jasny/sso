@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Jasny\SSO\Server;
 
 /**
@@ -12,7 +10,7 @@ interface SessionInterface
     /**
      * @see session_id()
      */
-    public function getId(): string;
+    public function getId();
 
     /**
      * Start a new session.
@@ -20,7 +18,7 @@ interface SessionInterface
      *
      * @throws ServerException if session can't be started.
      */
-    public function start(): void;
+    public function start();
 
     /**
      * Resume an existing session.
@@ -28,11 +26,11 @@ interface SessionInterface
      * @throws ServerException if session can't be started.
      * @throws BrokerException if session is expired
      */
-    public function resume(string $id): void;
+    public function resume($id);
 
     /**
      * Check if a session is active. (status PHP_SESSION_ACTIVE)
      * @see session_status()
      */
-    public function isActive(): bool;
+    public function isActive();
 }

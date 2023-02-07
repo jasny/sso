@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Jasny\SSO\Broker;
 
 /**
@@ -32,7 +30,7 @@ class Cookies implements \ArrayAccess
      * @param string $domain
      * @param bool   $secure
      */
-    public function __construct(int $ttl = 3600, string $path = '', string $domain = '', bool $secure = false)
+    public function __construct($ttl = 3600, $path = '', $domain = '', $secure = false)
     {
         $this->ttl = $ttl;
         $this->path = $path;
@@ -57,7 +55,7 @@ class Cookies implements \ArrayAccess
     /**
      * @inheritDoc
      */
-    public function offsetUnset($name): void
+    public function offsetUnset($name)
     {
         setcookie($name, '', 1, $this->path, $this->domain, $this->secure, true);
         unset($_COOKIE[$name]);
@@ -68,7 +66,7 @@ class Cookies implements \ArrayAccess
      */
     public function offsetGet($name)
     {
-        return $_COOKIE[$name] ?? null;
+        return isset($_COOKIE[$name]) ? $_COOKIE[$name] : null;
     }
 
     /**

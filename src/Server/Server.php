@@ -1,14 +1,14 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Jasny\SSO\Server;
 
+use Closure;
 use Jasny\Immutable;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Psr\SimpleCache\CacheInterface;
+use InvalidArgumentException;
 
 /**
  * Single sign-on server.
@@ -20,7 +20,7 @@ class Server
 
     /**
      * Callback to get the secret for a broker.
-     * @var \Closure
+     * @var Closure
      */
     protected $getBrokerInfo;
 
@@ -45,11 +45,19 @@ class Server
      * Class constructor.
      *
      * @phpstan-param callable(string):?array{secret:string,domains:string[]} $getBrokerInfo
-     * @phpstan-param CacheInterface                                          $cache
+     * @phpstan-param CacheInterface $cache
      */
-    public function __construct(callable $getBrokerInfo, CacheInterface $cache)
+    public function __construct($getBrokerInfo, CacheInterface $cache)
     {
-        $this->getBrokerInfo = \Closure::fromCallable($getBrokerInfo);
+        if (!is_callable($getBrokerInfo)) {
+            throw new InvalidArgumentException('Expected a callable argument.');
+        }
+
+        $getBrokerInfoClosure = function () use ($getBrokerInfo) {
+            return call_user_func($getBrokerInfo);
+        };
+
+        $this->getBrokerInfo = $getBrokerInfoClosure;
         $this->cache = $cache;
 
         $this->logger = new NullLogger();
@@ -61,7 +69,7 @@ class Server
      *
      * @return static
      */
-    public function withLogger(LoggerInterface $logger): self
+    public function withLogger(LoggerInterface $logger)
     {
         return $this->withProperty('logger', $logger);
     }
@@ -71,7 +79,7 @@ class Server
      *
      * @return static
      */
-    public function withSession(SessionInterface $session): self
+    public function withSession(SessionInterface $session)
     {
         return $this->withProperty('session', $session);
     }
@@ -83,7 +91,7 @@ class Server
      * @throws BrokerException
      * @throws ServerException
      */
-    public function startBrokerSession(?ServerRequestInterface $request = null): void
+    public function startBrokerSession($request = null)
     {
         if ($this->session->isActive()) {
             throw new ServerException("Session is already started", 500);
@@ -91,7 +99,10 @@ class Server
 
         $bearer = $this->getBearerToken($request);
 
-        [$brokerId, $token, $checksum] = $this->parseBearer($bearer);
+        $bearerParts = $this->parseBearer($bearer);
+        $brokerId = $bearerParts[0];
+        $token = $bearerParts[1];
+        $checksum = $bearerParts[2];
 
         $sessionId = $this->cache->get($this->getCacheKey($brokerId, $token));
 
@@ -117,13 +128,14 @@ class Server
     /**
      * Get bearer token from Authorization header.
      */
-    protected function getBearerToken(?ServerRequestInterface $request = null): string
+    protected function getBearerToken($request = null)
     {
-        $authorization = $request === null
-            ? ($_SERVER['HTTP_AUTHORIZATION'] ?? '') // @codeCoverageIgnore
+        $authorization = ($request === null) ? (isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '')
             : $request->getHeaderLine('Authorization');
 
-        [$type, $token] = explode(' ', $authorization, 2) + ['', ''];
+        $authorization_array = explode(' ', $authorization, 2);
+        $type = isset($authorization_array[0]) ? $authorization_array[0] : '';
+        $token = isset($authorization_array[1]) ? $authorization_array[1] : '';
 
         if ($type !== 'Bearer') {
             $this->logger->warning("Broker didn't use bearer authentication: "
@@ -140,7 +152,7 @@ class Server
      * @return string[]
      * @throws BrokerException
      */
-    protected function parseBearer(string $bearer): array
+    protected function parseBearer($bearer)
     {
         $matches = null;
 
@@ -155,7 +167,7 @@ class Server
     /**
      * Generate cache key for linking the broker token to the client session.
      */
-    protected function getCacheKey(string $brokerId, string $token): string
+    protected function getCacheKey($brokerId, $token)
     {
         return "SSO-{$brokerId}-{$token}";
     }
@@ -166,15 +178,16 @@ class Server
      * @param string $brokerId
      * @return string|null
      */
-    protected function getBrokerSecret(string $brokerId): ?string
+    protected function getBrokerSecret($brokerId)
     {
-        return ($this->getBrokerInfo)($brokerId)['secret'] ?? null;
+        $brokerInfo = call_user_func($this->getBrokerInfo, $brokerId);
+        return isset($brokerInfo['secret']) ? $brokerInfo['secret'] : null;
     }
 
     /**
      * Generate the verification code based on the token using the server secret.
      */
-    protected function getVerificationCode(string $brokerId, string $token, string $sessionId): string
+    protected function getVerificationCode($brokerId, $token, $sessionId)
     {
         return base_convert(hash('sha256', $brokerId . $token . $sessionId), 16, 36);
     }
@@ -182,7 +195,7 @@ class Server
     /**
      * Generate checksum for a broker.
      */
-    protected function generateChecksum(string $command, string $brokerId, string $token): string
+    protected function generateChecksum($command, $brokerId, $token)
     {
         $secret = $this->getBrokerSecret($brokerId);
 
@@ -199,20 +212,15 @@ class Server
      *
      * @throws BrokerException
      */
-    protected function validateChecksum(
-        string $checksum,
-        string $command,
-        string $brokerId,
-        string $token,
-        ?string $code = null
-    ): void {
+    protected function validateChecksum($checksum, $command, $brokerId, $token, $code = null)
+    {
         $expected = $this->generateChecksum($command . ($code !== null ? ":$code" : ''), $brokerId, $token);
 
         if ($checksum !== $expected) {
             $this->logger->warning(
                 "Invalid $command checksum",
                 ['expected' => $expected, 'received' => $checksum, 'broker' => $brokerId, 'token' => $token]
-                    + ($code !== null ? ['verification_code' => $code] : [])
+                + ($code !== null ? ['verification_code' => $code] : [])
             );
             throw new BrokerException("Invalid $command checksum", 403);
         }
@@ -221,9 +229,10 @@ class Server
     /**
      * Validate that the URL has a domain that is allowed for the broker.
      */
-    public function validateDomain(string $type, string $url, string $brokerId, ?string $token = null): void
+    public function validateDomain($type, $url, $brokerId, $token = null)
     {
-        $domains = ($this->getBrokerInfo)($brokerId)['domains'] ?? [];
+        $brokerInfo = call_user_func($this->getBrokerInfo, $brokerId);
+        $domains = isset($brokerInfo['domains']) ? $brokerInfo['domains'] : [];
         $host = parse_url($url, PHP_URL_HOST);
 
         if (!in_array($host, $domains, true)) {
@@ -242,9 +251,11 @@ class Server
      * @throws BrokerException
      * @throws ServerException
      */
-    public function attach(?ServerRequestInterface $request = null): string
+    public function attach($request = null)
     {
-        ['broker' => $brokerId, 'token' => $token] = $this->processAttachRequest($request);
+        $attachRequest = $this->processAttachRequest($request);
+        $brokerId = isset($attachRequest['broker']) ? $attachRequest['broker'] : null;
+        $token = isset($attachRequest['token']) ? $attachRequest['token'] : null;
 
         $this->session->start();
 
@@ -268,7 +279,7 @@ class Server
     /**
      * Assert that the token isn't already attached to a different session.
      */
-    protected function assertNotAttached(string $brokerId, string $token): void
+    protected function assertNotAttached($brokerId, $token)
     {
         $key = $this->getCacheKey($brokerId, $token);
         $attached = $this->cache->get($key);
@@ -291,7 +302,7 @@ class Server
      * @return array{broker:string,token:string}
      * @throws BrokerException
      */
-    protected function processAttachRequest(?ServerRequestInterface $request): array
+    protected function processAttachRequest($request)
     {
         $brokerId = $this->getRequiredQueryParam($request, 'broker');
         $token = $this->getRequiredQueryParam($request, 'token');
@@ -320,13 +331,13 @@ class Server
     /**
      * Get query parameter from PSR-7 request or $_GET.
      */
-    protected function getQueryParam(?ServerRequestInterface $request, string $key): ?string
+    protected function getQueryParam($request, $key)
     {
         $params = $request === null
             ? $_GET // @codeCoverageIgnore
             : $request->getQueryParams();
 
-        return $params[$key] ?? null;
+        return isset($params[$key]) ? $params[$key] : null;
     }
 
     /**
@@ -334,7 +345,7 @@ class Server
      *
      * @throws BrokerException if query parameter isn't set
      */
-    protected function getRequiredQueryParam(?ServerRequestInterface $request, string $key): string
+    protected function getRequiredQueryParam($request, $key)
     {
         $value = $this->getQueryParam($request, $key);
 
@@ -349,13 +360,21 @@ class Server
      * Get HTTP Header from PSR-7 request or $_SERVER.
      *
      * @param ServerRequestInterface $request
-     * @param string                 $key
+     * @param string $key
      * @return string
      */
-    protected function getHeader(?ServerRequestInterface $request, string $key): string
+    protected function getHeader($request, $key)
     {
-        return $request === null
-            ? ($_SERVER['HTTP_' . str_replace('-', '_', strtoupper($key))] ?? '') // @codeCoverageIgnore
-            : $request->getHeaderLine($key);
+        return $this->test($request, $key);
+    }
+
+    private function test($request, $key)
+    {
+        if ($request === null) {
+            $headerKey = 'HTTP_' . str_replace('-', '_', strtoupper($key));
+            return isset($_SERVER[$headerKey]) ? $_SERVER[$headerKey] : '';
+        }
+
+        return $request->getHeaderLine($key);
     }
 }
