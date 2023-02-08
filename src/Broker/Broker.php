@@ -361,7 +361,6 @@ class Broker
 
         return null;
     }
-
     private function verificationCodeFromState()
     {
         if (isset($this->state[$this->getCookieName('verify')])) {
