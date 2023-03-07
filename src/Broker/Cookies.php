@@ -43,7 +43,7 @@ class Cookies implements \ArrayAccess
     /**
      * @inheritDoc
      */
-    public function offsetSet($name, $value)
+    public function offsetSet($name, $value): void
     {
         $success = setcookie($name, $value, time() + $this->ttl, $this->path, $this->domain, $this->secure, true);
 
