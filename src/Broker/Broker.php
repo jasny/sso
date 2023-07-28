@@ -82,7 +82,12 @@ class Broker
         $this->broker = $broker;
         $this->secret = $secret;
 
-        $this->state = new Cookies();
+        // check if PHP version >=8.0
+        if (phpversion() >= '8.0.0') {
+            $this->state = new Cookies8();
+        } else {
+            $this->state = new Cookies();
+        }
     }
 
     /**
