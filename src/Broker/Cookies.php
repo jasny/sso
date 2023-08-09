@@ -13,25 +13,17 @@ namespace Jasny\SSO\Broker;
 class Cookies implements \ArrayAccess
 {
     /** @var int */
-    protected $ttl;
+    protected int $ttl;
 
     /** @var string */
-    protected $path;
+    protected string $path;
 
     /** @var string */
-    protected $domain;
+    protected string $domain;
 
     /** @var bool */
-    protected $secure;
+    protected bool $secure;
 
-    /**
-     * Cookies constructor.
-     *
-     * @param int    $ttl     Cookie TTL in seconds
-     * @param string $path
-     * @param string $domain
-     * @param bool   $secure
-     */
     public function __construct(int $ttl = 3600, string $path = '', string $domain = '', bool $secure = false)
     {
         $this->ttl = $ttl;
@@ -43,39 +35,39 @@ class Cookies implements \ArrayAccess
     /**
      * @inheritDoc
      */
-    public function offsetSet($name, $value)
+    public function offsetExists(mixed $offset): bool
     {
-        $success = setcookie($name, $value, time() + $this->ttl, $this->path, $this->domain, $this->secure, true);
+        return isset($_COOKIE[$offset]);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function offsetGet(mixed $offset): mixed
+    {
+        return $_COOKIE[$offset] ?? null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function offsetSet(mixed $offset, mixed $value): void
+    {
+        $success = setcookie($offset, $value, time() + $this->ttl, $this->path, $this->domain, $this->secure, true);
 
         if (!$success) {
-            throw new \RuntimeException("Failed to set cookie '$name'");
+            throw new \RuntimeException("Failed to set cookie '$offset'");
         }
 
-        $_COOKIE[$name] = $value;
+        $_COOKIE[$offset] = $value;
     }
 
     /**
      * @inheritDoc
      */
-    public function offsetUnset($name): void
+    public function offsetUnset(mixed $offset): void
     {
-        setcookie($name, '', 1, $this->path, $this->domain, $this->secure, true);
-        unset($_COOKIE[$name]);
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function offsetGet($name)
-    {
-        return $_COOKIE[$name] ?? null;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function offsetExists($name)
-    {
-        return isset($_COOKIE[$name]);
+        setcookie($offset, '', 1, $this->path, $this->domain, $this->secure, true);
+        unset($_COOKIE[$offset]);
     }
 }

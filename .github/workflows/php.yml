@@ -13,15 +13,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - php: 7.3
-          - php: 7.4
-            coverage: '--coverage --coverage-xml'
           - php: 8.0
+          - php: 8.1
+          - php: 8.2
+            coverage: '--coverage --coverage-xml'
     name: PHP ${{ matrix.php }}
 
     steps:
     - uses: actions/checkout@v2
-
+      with:
+        fetch-depth: 10
+ 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -39,7 +41,7 @@ jobs:
 
     - name: Upload coverage to Scrutinizer
       if: ${{ matrix.coverage }}
-      run: >
-        wget https://scrutinizer-ci.com/ocular.phar -O "/tmp/ocular.phar" &&
-        php "/tmp/ocular.phar" code-coverage:upload --format=php-clover tests/_output/coverage.xml
+      uses: sudo-bot/action-scrutinizer@latest
+      with:
+        cli-args: "--format=php-clover build/logs/clover.xml --revision=${{ github.event.pull_request.head.sha || github.sha }}"
 

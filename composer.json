@@ -16,7 +16,7 @@
         "source": "https://github.com/jasny/sso"
     },
     "require": {
-        "php": ">=7.3.0",
+        "php": "^8.0",
         "ext-json": "*",
         "jasny/immutable": "^2.1",
         "psr/simple-cache": "^1.0",
