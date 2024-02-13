@@ -9,14 +9,14 @@ Single Sign-On for PHP
 [![Packagist Stable Version](https://img.shields.io/packagist/v/jasny/sso.svg)](https://packagist.org/packages/jasny/sso)
 [![Packagist License](https://img.shields.io/packagist/l/jasny/sso.svg)](https://packagist.org/packages/jasny/sso)
 
-Jasny SSO is a relatively simply and straightforward solution for single sign on (SSO).
+Jasny SSO is a relatively simple and straightforward solution for single sign on (SSO).
 
 With SSO, logging into a single website will authenticate you for all affiliate sites. The sites don't need to share a
 toplevel domain.
 
 ### How it works
 
-When using SSO, when can distinguish 3 parties:
+When using SSO, we can distinguish 3 parties:
 
 * Client - This is the browser of the visitor
 * Broker - The website which is visited
@@ -42,11 +42,11 @@ For a more in depth explanation, please [read this article](https://github.com/j
 With OAuth, you can authenticate a user at an external server and get access to their profile info. However, you
 aren't sharing a session.
 
-A user logs in to website foo.com using Google OAuth. Next he visits website bar.org which also uses Google OAuth.
-Regardless of that, he is still required to press on the 'login' button on bar.org.
+A user logs in to website foo.com using Google OAuth. Next they visit website bar.org which also uses Google OAuth.
+Regardless of that, they are still required to press the 'login' button on bar.org.
 
-With Jasny SSO both websites use the same session. So when the user visits bar.org, he's automatically logged in.
-When he logs out (on either of the sites), he's logged out for both.
+With Jasny SSO both websites use the same session. So when the user visits bar.org, they are automatically logged in.
+When they log out (on either of the sites), they are logged out for both.
 
 ## Installation
 
@@ -59,7 +59,7 @@ Install this library through composer
 There is a demo server and two demo brokers as example. One with normal redirects and one using
 [JSONP](https://en.wikipedia.org/wiki/JSONP) / AJAX.
 
-To proof it's working you should setup the server and two or more brokers, each on their own machine and their own
+To prove it's working you should setup the server and two or more brokers, each on their own machine and their own
 (sub)domain. However, you can also run both server and brokers on your own machine, simply to test it out.
 
 On *nix (Linux / Unix / OSX) run:
@@ -86,7 +86,7 @@ _Note that after logging in, you need to refresh on the other brokers to see the
 
 ## Server
 
-The `Server` class takes a callback as first constructor argument. This callback should lookup the secret
+The `Server` class takes a callback as first constructor argument. This callback should look up the secret
 for a broker based on the id.
 
 The second argument must be a PSR-16 compatible cache object. It's used to store the link between broker token and
@@ -106,11 +106,11 @@ $server = new Server(
 );
 ```
 
-_In this example the brokers are simply configured as array. But typically you want to fetch the broker info from a DB._
+_In this example the brokers are simply configured as an array, but typically you want to fetch the broker info from a DB._
 
 ### Attach
 
-A client needs attach the broker token to the session id by doing an HTTP request to the server. This request can be
+A client needs to attach the broker token to the session id by doing an HTTP request to the server. This request can be
 handled by calling `attach()`.
 
 The `attach()` method returns a verification code. This code must be returned to the broker, as it's needed to
@@ -192,7 +192,7 @@ secret needs to match the secret registered at the server.
 
 ### Attach
 
-Before the broker can do API requests on the client's behalve, the client needs to attach the broker token to the client
+Before the broker can do API requests on the client's behalf, the client needs to attach the broker token to the client
 session. For this, the client must do an HTTP request to the SSO Server.
 
 The `getAttachUrl()` method will generate a broker token for the client and use it to create an attach URL. The method
@@ -224,7 +224,7 @@ if (!$broker->isAttached()) {
 
 ### Verify
 
-Upon verification the SSO Server will return a verification code (as query parameter or in the JSON response). The code
+Upon verification the SSO Server will return a verification code (as a query parameter or in the JSON response). The code
 is used to calculate the checksum. The verification code prevents session hijacking using an attach link.
 
 ```php
@@ -288,7 +288,7 @@ _(The cookie can never be accessed by the browser.)_
 
 #### Session
 
-Alternative, you can store the SSO token in a PHP session for the broker by using `Session`.
+Alternatively, you can store the SSO token in a PHP session for the broker by using `Session`.
 
 ```php
 use Jasny\SSO\Broker\{Broker,Session};
